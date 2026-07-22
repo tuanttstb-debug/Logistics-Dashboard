@@ -77,6 +77,7 @@
 | **QĐ-40** | **(Trả lời Q-05)** **Chưa làm đơn giá** (USD/kg, USD/CBM) ở Chặng 2 | Tránh rủi ro de-dup CW/CBM sai từ đầu; để dành phân tích Kaizen. Bác phương án làm ngay | ✅ |
 | **QĐ-41** | **DB của web = sheet `40_FACT_CostLines` (cột A:X, header dòng 9) của `Logistics_System.xlsx`.** 24 cột A:X là nguồn; **bỏ** dòng ghi chú 1–8 và khối legend **AF:AZ** (schema v2 chưa dùng). File `Logistics record JUN 2026.xlsx` là **hệ thủ công AS-IS**, chỉ là nguồn ghi chép — **không** đẩy lên web | Đối chiếu file thật 2026-07-22: A:X khớp DATA_CONTRACT/context. AF:AZ (Cost Stage/Cost Bucket/POB) chỉ có tiêu đề, không data → là dự kiến nâng cấp, không phải DB hiện tại | ✅ |
 | **QĐ-42** | **Chấp nhận fact chỉ có 1 tháng (2026-06).** So sánh kỳ/YTD (QĐ-39) hiển thị "—" khi thiếu tháng trước; tự có khi các tháng sau được refresh + dán thêm. Lịch sử cũ (2025-01→2026-05) nằm ở file record, **chưa** backfill | Ưu tiên chạy thật tháng hiện tại; bác backfill (tốn công) và bác ghép 2 nguồn (phức tạp) ở giai đoạn này | ✅ |
+| **QĐ-43** | **DB Google Sheets quản lý TOÀN BỘ raw data:** tạo 11 tab RAW (10–19, giữ đúng header gốc `Logistics_System.xlsx`) **+ giữ** tab `fact_CostLines`. **Excel vẫn là engine** (Power Query tính fact) — Sheets chỉ là KHO lưu raw + fact, **không** tính toán trên Sheets. Web **vẫn chỉ đọc** `fact_CostLines` | Bác phương án "chỉ giữ fact" (mất raw gốc) và bác phương án "dựng lại transform trong GAS" (rất lớn, lệch QĐ-34/35). Giữ raw trên cloud để lưu trữ/tra cứu tập trung, web không gãy | ✅ |
 
 ---
 

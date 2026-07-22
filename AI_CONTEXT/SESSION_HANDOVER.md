@@ -7,11 +7,12 @@
 ### ✅ Task completed
 - **Deploy GAS xong** (owner làm): URL Web App `AKfycby28…/exec`. Dán vào `config/env.js` + `USE_MOCK:false`.
 - **Test:** `?action=ping` → `{ok:true,version:0.2.0}` ✅. `?action=meta` → `{ok:false, "Không thấy tab: fact_CostLines"}` (đúng, chưa tạo tab).
-- **Viết `backend/Setup.gs`** — `setupSheets()`: tạo tab `fact_CostLines`, 24 header mẫu A:X, freeze dòng 1, cột khóa Month/B-L/INVOICE/CDS = Plain text. Idempotent (không xóa data). Chạy trong editor, **không cần redeploy**.
+- **Viết `backend/Setup.gs`** — `setupSheets()`: tạo tab + header + Plain text, freeze dòng 1. Idempotent (không xóa data). Chạy trong editor, **không cần redeploy**.
+- **QĐ-43 — DB đa-tab raw:** đọc cấu trúc sheet 10–19 của `Logistics_System.xlsx` (openpyxl), mở rộng `Setup.gs` tạo **11 tab RAW** (`10_DHL_Raw`…`19_Overhead_Raw`, header thật) **+ giữ** `fact_CostLines`. Sheets là KHO toàn bộ raw data; **Excel vẫn là engine**; web vẫn chỉ đọc `fact_CostLines`.
 
 ### 📁 Files changed
 - Mới: `backend/Setup.gs`.
-- Sửa: `config/env.js` (URL + USE_MOCK), `AI_CONTEXT/SOP_DEPLOY|TODO_NEXT|PROJECT_STATE|CHANGE_LOG`.
+- Sửa: `config/env.js` (URL + USE_MOCK), `context/30_DECISIONS_LOG` (QĐ-43), `AI_CONTEXT/DATA_CONTRACT` (§0 cấu trúc DB), `SYSTEM_ARCHITECTURE`, `SOP_DEPLOY|TODO_NEXT|PROJECT_STATE|CHANGE_LOG`.
 
 ### 🚧 Blocker
 - 🔴 Nợ bảo mật TD-11 vẫn nguyên (data trong lịch sử Git) — **chưa xử lý**. Nay thêm: Web App "Anyone" + URL trong repo → ai có URL đọc được cost data thật **khi sheet đã dán**. Cân nhắc repo Private trước khi dán data.

@@ -16,9 +16,10 @@
 - [x] Viết **`SOP_DEPLOY.md`** (tạo Sheet + dán A:X + deploy GAS + nối env.js).
 - [x] Dán mã `backend/*.gs` vào Apps Script của Sheet; Deploy → Web app → copy `/exec` URL.
 - [x] Dán URL vào `config/env.js` `GS_WEBAPP_URL` + `USE_MOCK: false`. `?action=ping` ✅.
-- [x] Viết `backend/Setup.gs` (`setupSheets()`) tạo tab `fact_CostLines` + header + Plain text.
-- [ ] **Chạy `setupSheets()`** trong Apps Script editor (chọn hàm → ▶ Run → Allow). `?action=meta` hết báo "Không thấy tab".
-- [ ] Dán A:X từ dòng 9 Excel vào ô A1 tab `fact_CostLines` (Ctrl+Shift+V, Paste values only) → refresh web thấy dữ liệu thật.
+- [x] Viết `backend/Setup.gs` (`setupSheets()`) — QĐ-43: tạo **11 tab RAW (10–19)** + `fact_CostLines`, header thật + Plain text.
+- [ ] Dán `backend/Setup.gs` mới vào Apps Script (thay bản cũ) → **Chạy `setupSheets()`** (chọn hàm → ▶ Run → Allow). Kiểm 12 tab đã tạo; `?action=meta` hết báo "Không thấy tab".
+- [ ] Dán `fact_CostLines` A:X từ dòng 9 Excel vào ô A1 tab `fact_CostLines` (Ctrl+Shift+V) → refresh web thấy dữ liệu thật.
+- [ ] (QĐ-43) Dán raw từng nguồn vào tab tương ứng (10–19) để Sheets lưu trữ toàn bộ raw data.
 - [ ] Viết **SOP đẩy Excel→Sheets** từng bước (Refresh All → copy sheet 40 → paste values).
 
 ## 🟠 Ưu tiên 3 — Xác minh & hoàn thiện UI

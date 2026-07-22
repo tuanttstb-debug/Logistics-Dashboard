@@ -2,10 +2,12 @@
 
 > Ghi mọi thay đổi, mới nhất trên cùng.
 
-## 2026-07-22 (khuya) — Nối GAS Web App thật + script tạo sheet
+## 2026-07-22 (khuya) — Nối GAS Web App thật + DB đa-tab raw
 
 ### Thay đổi
-- **feat(gas):** thêm `backend/Setup.gs` — hàm `setupSheets()` chạy 1 lần trong Apps Script editor: tạo tab `fact_CostLines`, ghi 24 header mẫu (A:X), freeze dòng 1, đặt cột khóa Month/B-L/INVOICE/CDS = Plain text. Idempotent, không xóa dữ liệu.
+- **feat(gas):** `backend/Setup.gs` — `setupSheets()` chạy 1 lần trong editor.
+  - **v1:** tạo tab `fact_CostLines` (24 header A:X).
+  - **v2 (QĐ-43):** mở rộng tạo **11 tab RAW** (`10_DHL_Raw`…`19_Overhead_Raw`) + giữ `fact_CostLines`. Header thật trích từ `Logistics_System.xlsx`; tab raw để **Plain text toàn cột**. DB Google Sheets nay quản lý **toàn bộ raw data**; Excel vẫn là engine; web vẫn chỉ đọc `fact_CostLines`. Idempotent, không xóa dữ liệu.
 - **feat(env):** dán `GS_WEBAPP_URL` thật (`AKfycby28…/exec`) vào `config/env.js`, đặt `USE_MOCK: false` → app đọc dữ liệu thật.
 - **kiểm:** `?action=ping` → `{ok:true,version:0.2.0}` ✅. `?action=meta` báo thiếu tab `fact_CostLines` (đúng — chưa chạy `setupSheets` + chưa dán data).
 
