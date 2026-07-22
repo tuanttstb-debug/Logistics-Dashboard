@@ -14,10 +14,11 @@
 - [x] **Xác định phạm vi DB** (QĐ-41/42): `40_FACT_CostLines` A:X, header dòng 9, 1 tháng (2026-06).
 - [x] Hoàn thiện GAS BE (`Config`/`DataService`/`Code`/`Utils`) khớp scope; sửa tên cột thật.
 - [x] Viết **`SOP_DEPLOY.md`** (tạo Sheet + dán A:X + deploy GAS + nối env.js).
-- [ ] **Chạy SOP_DEPLOY**: tạo Google Sheet, tab `fact_CostLines`, dán A:X từ dòng 9 → deploy Web App → dán URL `env.js`.
-- [ ] Dán mã `backend/*.gs` vào Apps Script của Sheet; Deploy → Web app → copy `/exec` URL.
-- [ ] Dán URL vào `config/env.js` `GS_WEBAPP_URL`; kiểm `?action=ping|facts|meta`.
-- [ ] `USE_MOCK` để `true` cũng được (tự bỏ qua khi có URL), hoặc set `false`.
+- [x] Dán mã `backend/*.gs` vào Apps Script của Sheet; Deploy → Web app → copy `/exec` URL.
+- [x] Dán URL vào `config/env.js` `GS_WEBAPP_URL` + `USE_MOCK: false`. `?action=ping` ✅.
+- [x] Viết `backend/Setup.gs` (`setupSheets()`) tạo tab `fact_CostLines` + header + Plain text.
+- [ ] **Chạy `setupSheets()`** trong Apps Script editor (chọn hàm → ▶ Run → Allow). `?action=meta` hết báo "Không thấy tab".
+- [ ] Dán A:X từ dòng 9 Excel vào ô A1 tab `fact_CostLines` (Ctrl+Shift+V, Paste values only) → refresh web thấy dữ liệu thật.
 - [ ] Viết **SOP đẩy Excel→Sheets** từng bước (Refresh All → copy sheet 40 → paste values).
 
 ## 🟠 Ưu tiên 3 — Xác minh & hoàn thiện UI

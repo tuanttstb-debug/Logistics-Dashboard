@@ -2,6 +2,30 @@
 
 > Mới nhất trên cùng. Mỗi phiên một block. Chỉ ghi delta của phiên.
 
+## 2026-07-22 (khuya) — Nối GAS Web App thật + script tạo sheet
+
+### ✅ Task completed
+- **Deploy GAS xong** (owner làm): URL Web App `AKfycby28…/exec`. Dán vào `config/env.js` + `USE_MOCK:false`.
+- **Test:** `?action=ping` → `{ok:true,version:0.2.0}` ✅. `?action=meta` → `{ok:false, "Không thấy tab: fact_CostLines"}` (đúng, chưa tạo tab).
+- **Viết `backend/Setup.gs`** — `setupSheets()`: tạo tab `fact_CostLines`, 24 header mẫu A:X, freeze dòng 1, cột khóa Month/B-L/INVOICE/CDS = Plain text. Idempotent (không xóa data). Chạy trong editor, **không cần redeploy**.
+
+### 📁 Files changed
+- Mới: `backend/Setup.gs`.
+- Sửa: `config/env.js` (URL + USE_MOCK), `AI_CONTEXT/SOP_DEPLOY|TODO_NEXT|PROJECT_STATE|CHANGE_LOG`.
+
+### 🚧 Blocker
+- 🔴 Nợ bảo mật TD-11 vẫn nguyên (data trong lịch sử Git) — **chưa xử lý**. Nay thêm: Web App "Anyone" + URL trong repo → ai có URL đọc được cost data thật **khi sheet đã dán**. Cân nhắc repo Private trước khi dán data.
+- Web chưa có dữ liệu: chưa chạy `setupSheets()`, chưa dán A:X.
+
+### ➡️ Next step
+1. Apps Script editor → chọn `setupSheets` → ▶ Run → Allow. Kiểm `?action=meta` hết báo lỗi tab.
+2. Dán Excel `40_FACT_CostLines` A:X (từ dòng 9) vào ô A1 tab `fact_CostLines` (Ctrl+Shift+V) → refresh web.
+3. Mở `index.html` xác minh 4 trang trên dữ liệu thật.
+
+### ⚠️ Regression risk
+- `setupSheets()` chỉ ghi header khi tab RỖNG; nếu chạy sau khi đã dán data → giữ nguyên data, chỉ re-apply Plain text (an toàn).
+- Header mẫu ở Setup.gs là placeholder — bước Paste values only sẽ đè header thật lên.
+
 ## 2026-07-22 (tối) — SOP deploy + gỡ data/ khỏi Git
 
 ### ✅ Task completed
