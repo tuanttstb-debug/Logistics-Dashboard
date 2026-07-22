@@ -2,7 +2,7 @@
 
 **Cập nhật:** 2026-07-22
 
-> **Δ phiên 2026-07-22:** Chặng 1+2 xong (UI 4 trang, chạy mock). Handover đầy đủ ở `SESSION_HANDOVER.md`; nợ ở `TECH_DEBT.md`; việc kế tiếp ở `TODO_NEXT.md`. **Đính chính:** thư mục **chưa phải git repo** (`.git` không có) — chưa commit/push được (TD-01).
+> **Δ phiên 2026-07-22:** Chặng 1+2 xong (UI 4 trang, chạy mock) + **đã git init/commit/push** (commit `8b008e6` → github.com/tuanttstb-debug/Logistics-Dashboard, trên `fe62e69`). Đã dọn 1 clone rỗng lồng nhau. Handover đầy đủ ở `SESSION_HANDOVER.md`; nợ ở `TECH_DEBT.md`; việc kế tiếp ở `TODO_NEXT.md`.
 
 ## Trạng thái tổng thể
 
@@ -11,7 +11,7 @@ Engine dữ liệu (Excel)   █████████████████
 Context + kiến trúc web  ████████████████████ 100%  ✅
 UI/Dashboard thật        ██████████████████░░  ~90%  ✅ Chặng 2 (chạy trên mock)
 Backend GAS deploy       ░░░░░░░░░░░░░░░░░░░░    0%  ⬜ chờ Sheets + URL
-Git repo                 ░░░░░░░░░░░░░░░░░░░░    0%  ⛔ chưa init (.git không có — TD-01)
+Git repo                 ████████████████████ 100%  ✅ đã push (8b008e6)
 ```
 
 **Chặng 2 đã hiện thực (2026-07-22):** 4 trang — Dashboard (KPI + so sánh kỳ + 3 biểu đồ Chart.js) · Báo cáo CEO theo forwarder (Import/Export/Overhead/Third party, freight tách Air/Sea) · Theo Route · Giới thiệu. Chọn tháng, dark mode. Chạy được trên **dữ liệu mẫu** (`assets/js/mock-data.js`); logic đã smoke-test khớp tổng.

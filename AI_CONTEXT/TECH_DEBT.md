@@ -4,7 +4,7 @@
 
 | ID | Nợ | Ảnh hưởng | Xử lý |
 |---|---|---|---|
-| **TD-01** | Thư mục **chưa phải git repo** (`.git` không có) dù tưởng đã push | Không commit/push được; mất lịch sử | Làm rõ + `git init`/nối remote (TODO_NEXT #1) |
+| ~~TD-01~~ | ~~Chưa phải git repo~~ | — | ✅ Đã init + push `8b008e6`; dọn clone rỗng lồng nhau |
 | **TD-02** | App chạy **dữ liệu mẫu** (`mock-data.js`), chưa nối GAS/Sheets | Chưa phải số thật | Deploy backend + dán URL |
 | **TD-03** | **Chưa xác minh trực quan** trên trình duyệt | Có thể lỗi layout/chart chưa phát hiện | Mở `index.html` kiểm tay |
 | **TD-04** | **Chart.js từ CDN** | Offline/CSP chặn → biểu đồ trắng | Đã guard không vỡ trang; cân nhắc nhúng cục bộ nếu cần |
