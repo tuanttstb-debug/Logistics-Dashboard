@@ -2,7 +2,8 @@
 
 **Cập nhật:** 2026-07-22
 
-> **Δ phiên 2026-07-22:** Chặng 1+2 xong (UI 4 trang, chạy mock) + **đã git init/commit/push** (commit `8b008e6` → github.com/tuanttstb-debug/Logistics-Dashboard, trên `fe62e69`). Đã dọn 1 clone rỗng lồng nhau. Handover đầy đủ ở `SESSION_HANDOVER.md`; nợ ở `TECH_DEBT.md`; việc kế tiếp ở `TODO_NEXT.md`.
+> **Δ phiên 2026-07-22:** Chặng 1+2 xong (UI 4 trang, chạy mock) + **đã git init/commit/push** (github.com/tuanttstb-debug/Logistics-Dashboard). Đã dọn 1 clone rỗng lồng nhau.
+> **Δ (tối):** xác định phạm vi DB (QĐ-41 `40_FACT_CostLines` A:X / QĐ-42 1 tháng), hoàn thiện GAS BE, viết `SOP_DEPLOY.md`, **gỡ `data/` khỏi Git** (đã push `ba780e2`). 🔴 **Còn nợ bảo mật:** dữ liệu công ty vẫn trong lịch sử Git (xem `TECH_DEBT.md` TD-11). Handover: `SESSION_HANDOVER.md`; việc kế tiếp: `TODO_NEXT.md`.
 
 ## Trạng thái tổng thể
 

@@ -2,6 +2,32 @@
 
 > Mới nhất trên cùng. Mỗi phiên một block. Chỉ ghi delta của phiên.
 
+## 2026-07-22 (tối) — SOP deploy + gỡ data/ khỏi Git
+
+### ✅ Task completed
+- Viết `AI_CONTEXT/SOP_DEPLOY.md` — 3 phần từng nút bấm: (A) tạo Google Sheet + dán **A:X từ dòng 9**, (B) deploy Apps Script → Web App, (C) nối `env.js` + bảng xử lỗi CORS.
+- **Gỡ `data/` khỏi Git** (`git rm --cached`) + thêm `data/` vào `.gitignore` — 2 file xlsx vẫn **còn trên máy**. Lý do: chứa dữ liệu công ty thật (shipper/consignee, số tiền, đường dẫn ổ mạng Y:/Z:, tên nhân viên) đã lỡ push.
+- Push: `d26e33a` (SOP+GAS+scope), `ba780e2` (gỡ data/).
+
+### 📁 Files changed
+- Mới: `AI_CONTEXT/SOP_DEPLOY.md`.
+- Sửa: `.gitignore` (chặn `data/`), `README.md` (trỏ SOP).
+
+### 🧭 Decision made
+- Tiếp QĐ-41/42. Gỡ `data/` khỏi tracking, giữ cục bộ (chưa đánh số QĐ — thao tác vận hành).
+
+### 🚧 Blocker
+- 🔴 **BẢO MẬT:** dữ liệu công ty **vẫn còn trong LỊCH SỬ Git** (`8b008e6`, `d26e33a`) — GitHub còn phục vụ được. **Chưa quyết:** đổi repo Private / rewrite history + force-push / để nguyên. Nếu repo public thì đã lộ, có thể đã bị cache/fork.
+- Chưa deploy GAS + Google Sheet → web vẫn chạy **mock**.
+
+### ➡️ Next step
+1. **Xử lý lịch sử data** — khuyến nghị đổi repo **Private ngay**, rồi cân nhắc rewrite history (tôi hướng dẫn khi bạn chốt).
+2. Chạy **SOP_DEPLOY.md**: tạo Sheet + dán A:X → deploy GAS → dán URL vào `config/env.js` (tắt mock).
+
+### ⚠️ Regression risk
+- `.gitignore` chặn `data/` → sau này muốn commit file trong `data/` sẽ bị bỏ qua (phải `-f`).
+- Nếu rewrite history: mọi SHA đổi → ai đã clone phải re-clone.
+
 ## 2026-07-22 (chiều) — Xác định phạm vi DB + hoàn thiện GAS BE
 
 - **Task:** đọc 2 file Excel thật (bản copy, không đụng gốc), xác định DB trước khi viết GAS.
