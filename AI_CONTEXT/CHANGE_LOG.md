@@ -2,6 +2,17 @@
 
 > Ghi mọi thay đổi, mới nhất trên cùng.
 
+## 2026-07-22 (khuya-3) — Phase A: port Power Query (staging đủ 6 nguồn)
+
+### Bối cảnh
+Trích **toàn bộ mã M gốc** từ DataMashup của `Logistics_System.xlsx` (`data/_source/pq_section1.m`, 22 query) làm ground truth thay vì mô tả context.
+
+### Thay đổi
+- **refactor(gas):** `Transform.gs` viết lại theo **đúng khuôn PQ**: mỗi nguồn `UnpivotOtherColumns(tập định danh)` → tầng chung 1 lần (Amount≠0 · USD_Rate · Amount_USD [EI riêng] · Mode chuẩn khớp-chuỗi-chính-xác · Import/Export). Thêm **VVMV** (bridge B/L invoice→Tracking# sheet 16, chuẩn hóa invoice §11), **Dolphin**, **EI** (40 cột, Currency VND/USD, tỷ giá riêng lô). DHL/FedEx sửa cho khớp PQ (unpivot-others, không intersect Map_Cost).
+- `normHdr_` chuẩn hóa header (gộp xuống-dòng/space) để khớp tên cột dù lệch khoảng trắng.
+- **Route/Loại hàng: bước kế** (giữ null) — validate tổng trước.
+- **Đối chiếu:** kỳ vọng đủ 7 nguồn **1.480 dòng / $44.062** (VVMV 936/$27.056 · Dolphin 29/$2.195 · EI 37/$2.105 · DHL 23/$1.398 · FedExExp 25/$585 · FedExImp 429/$9.891 · Overhead 4/$1.066).
+
 ## 2026-07-22 (khuya-2) — GAS engine dựng fact từ raw (QĐ-44)
 
 ### Thay đổi
