@@ -9,8 +9,8 @@
   function init() {
     H.initTheme();
     bindShell();
-    loadData().then(setupControls).then(render)
-      .catch(function (e) { H.log(e); H.toast('Lỗi khởi tạo: ' + e.message, 'error'); renderPlaceholder(); });
+    bindControls();       // gắn listener MỘT LẦN (tránh nhân đôi khi đồng bộ)
+    refreshData(true);    // lần đầu: chọn tháng mới nhất
   }
 
   function loadData() {
@@ -41,21 +41,40 @@
     if (miss > 0) H.toast('⚠️ ' + miss + ' dòng thiếu Amount_USD — kiểm Excel', 'error');
   }
 
-  function setupControls() {
+  // Gắn listener MỘT LẦN cho chọn tháng + điều hướng (gọi trong init)
+  function bindControls() {
+    var sel = document.getElementById('monthSelect');
+    if (sel) sel.addEventListener('change', function () { _month = sel.value; render(); });
+    document.querySelectorAll('[data-view]').forEach(function (el) {
+      el.addEventListener('click', function () { _view = el.getAttribute('data-view'); syncNav(); render(); closeSidebarMobile(); });
+    });
+  }
+
+  // Đổ lại danh sách tháng vào dropdown (KHÔNG gắn thêm listener)
+  function populateMonths(pickNewest) {
     var months = Report.allMonths();
-    _month = months.length ? months[months.length - 1] : '';
+    if (pickNewest || months.indexOf(_month) < 0) _month = months.length ? months[months.length - 1] : '';
     var sel = document.getElementById('monthSelect');
     if (sel) {
       sel.innerHTML = months.map(function (m) {
         return '<option value="' + m + '">' + Views.fmtMonth(m) + '</option>';
       }).join('');
       sel.value = _month;
-      sel.addEventListener('change', function () { _month = sel.value; render(); });
     }
-    // nav
-    document.querySelectorAll('[data-view]').forEach(function (el) {
-      el.addEventListener('click', function () { _view = el.getAttribute('data-view'); syncNav(); render(); closeSidebarMobile(); });
-    });
+  }
+
+  // Đồng bộ: tải lại dữ liệu từ GAS + vẽ lại, có spinner + toast (thay việc F5)
+  function refreshData(pickNewest) {
+    var btn = document.getElementById('refreshBtn');
+    if (btn) { btn.classList.add('is-spinning'); btn.disabled = true; }
+    return loadData()
+      .then(function () {
+        populateMonths(pickNewest);
+        render();
+        if (window.Api.configured()) H.toast('Đã đồng bộ dữ liệu', 'ok');
+      })
+      .catch(function (e) { H.log(e); H.toast('Đồng bộ lỗi: ' + e.message, 'error'); renderPlaceholder(); })
+      .then(function () { if (btn) { btn.classList.remove('is-spinning'); btn.disabled = false; } });
   }
 
   function syncNav() {
@@ -141,7 +160,7 @@
     var themeBtn = document.getElementById('themeBtn');
     if (themeBtn) themeBtn.addEventListener('click', function () { H.toggleTheme(); render(); }); // vẽ lại chart theo theme
     var refresh = document.getElementById('refreshBtn');
-    if (refresh) refresh.addEventListener('click', function () { loadData().then(render); });
+    if (refresh) refresh.addEventListener('click', function () { refreshData(false); });
   }
   function closeSidebarMobile() {
     var sidebar = document.getElementById('sidebar'), overlay = document.getElementById('sidebarOverlay');
