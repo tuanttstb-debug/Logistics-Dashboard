@@ -75,13 +75,15 @@
 | **QĐ-38** | **(Trả lời Q-03)** Báo cáo theo **Route** đặt ở **trang/tab riêng "Theo Route"** (bảng Route × Import/Export/Tổng USD). Báo cáo chính vẫn theo Forwarder | Tránh làm bảng chính rối/rộng; Route là góc nhìn thứ 2 | ✅ |
 | **QĐ-39** | **(Trả lời Q-04)** Báo cáo/dashboard **CÓ so sánh kỳ:** cột tháng hiện tại · tháng liền trước · % thay đổi · **lũy kế năm (YTD)** | CEO cần theo dõi xu hướng. Ràng buộc: cần đủ nhiều tháng dữ liệu (G-01) — tháng thiếu thì hiển thị "—" | ✅ |
 | **QĐ-40** | **(Trả lời Q-05)** **Chưa làm đơn giá** (USD/kg, USD/CBM) ở Chặng 2 | Tránh rủi ro de-dup CW/CBM sai từ đầu; để dành phân tích Kaizen. Bác phương án làm ngay | ✅ |
+| **QĐ-41** | **DB của web = sheet `40_FACT_CostLines` (cột A:X, header dòng 9) của `Logistics_System.xlsx`.** 24 cột A:X là nguồn; **bỏ** dòng ghi chú 1–8 và khối legend **AF:AZ** (schema v2 chưa dùng). File `Logistics record JUN 2026.xlsx` là **hệ thủ công AS-IS**, chỉ là nguồn ghi chép — **không** đẩy lên web | Đối chiếu file thật 2026-07-22: A:X khớp DATA_CONTRACT/context. AF:AZ (Cost Stage/Cost Bucket/POB) chỉ có tiêu đề, không data → là dự kiến nâng cấp, không phải DB hiện tại | ✅ |
+| **QĐ-42** | **Chấp nhận fact chỉ có 1 tháng (2026-06).** So sánh kỳ/YTD (QĐ-39) hiển thị "—" khi thiếu tháng trước; tự có khi các tháng sau được refresh + dán thêm. Lịch sử cũ (2025-01→2026-05) nằm ở file record, **chưa** backfill | Ưu tiên chạy thật tháng hiện tại; bác backfill (tốn công) và bác ghép 2 nguồn (phức tạp) ở giai đoạn này | ✅ |
 
 ---
 
 ## Mẫu ghi quyết định mới
 
 ```
-| **QĐ-41** | [Nội dung quyết định] | [Lý do — nhất là lý do BÁC bỏ phương án khác] | ✅ |
+| **QĐ-43** | [Nội dung quyết định] | [Lý do — nhất là lý do BÁC bỏ phương án khác] | ✅ |
 ```
 
 Nếu thay quyết định cũ: sửa dòng cũ thành `⛔ **THAY bởi QĐ-xx**`, giữ nguyên nội dung và lý do gốc.

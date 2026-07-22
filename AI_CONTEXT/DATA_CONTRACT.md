@@ -4,17 +4,21 @@
 
 ## 1. Nguồn: kho `fact_CostLines`
 
+**Nguồn thật (đã đối chiếu 2026-07-22 — QĐ-41):** sheet **`40_FACT_CostLines`** trong `data/Logistics_System.xlsx`, **cột A:X (24 cột), header ở DÒNG 9**, data dòng 10→ (T6/2026: ~1.480 dòng).
+- **BỎ** dòng ghi chú 1–8 ("⚠ ĐỪNG GÕ TAY").
+- **BỎ** khối **AF:AZ** (legend schema v2: `Cost Stage/Cost Bucket/Mã lô hàng/Is Overhead/Pay on behalf/…`) — chỉ có tiêu đề, **không** phải DB.
+
 Mỗi dòng = **1 khoản phí** của 1 lô. Web **chỉ đọc**, không sửa. Không tái cài đặt logic phân loại trong JS — dữ liệu tới web đã gắn đủ nhãn.
 
 ### Cột (giữ nguyên tên gốc — QĐ: KHÔNG đổi tên cột)
 
 | Cột | Kiểu | Ghi chú cho web |
 |---|---|---|
-| `Month` | Text `YYYY-MM` | Khóa lọc tháng. **Không** để JS ép thành Date |
-| `Forwarder` | Text | `DHL`, `FedEx Export`, `FedEx Import`, `Dolphin`, `VVMV`, `EI`, `Gia Bảo` |
+| `Month` | Text `YYYY-MM` | Khóa lọc tháng. **Không** để JS ép thành Date. *(Hiện DB chỉ có `2026-06` — QĐ-42)* |
+| `Forwarder` | Text | `DHL`, `FedEx Export`, `FedEx Import`, `Dolphin`, `VVMV`, `EI`, `Gia Bảo`. *(T6/2026: VVMV chiếm 63%)* |
 | `B/L` | Text | Khóa lô. Đừng ép số |
-| `Invoice No` | Text | Có thể trống |
-| `CDS No` | Text | Có thể trống |
+| `INVOICE NO.` | Text | ⚠️ Tên cột thật **có dấu chấm**. Có thể trống |
+| `CDS NO.` | Text | ⚠️ Tên cột thật **có dấu chấm**. Có thể trống |
 | `Shipper` | Text | |
 | `Consignee` | Text | Có thể null |
 | `Origin` / `ORIGIN` | Text | |
@@ -43,10 +47,11 @@ Mỗi dòng = **1 khoản phí** của 1 lô. Web **chỉ đọc**, không sửa
 
 - Tab tên **`fact_CostLines`**, hàng 1 = tiêu đề cột (khớp tuyệt đối tên trên).
 - Quy trình tháng của owner (dạng thao tác text, không script):
-  1. Excel: Refresh All → mở sheet 40 (`fact_CostLines`).
-  2. Copy vùng dữ liệu (kèm tiêu đề).
-  3. Google Sheets → tab `fact_CostLines` → dán **Paste values only** (Ctrl+Shift+V).
-  4. Không đổi thứ tự/tên cột.
+  1. Excel: **Refresh All** → mở sheet `40_FACT_CostLines`.
+  2. Chọn khối **cột A:X**, **từ dòng 9 (header) tới dòng cuối có dữ liệu** — KHÔNG lấy dòng 1–8, KHÔNG lấy khối AF:AZ.
+  3. Copy → Google Sheets → tab `fact_CostLines`, ô A1 → dán **Paste values only** (Ctrl+Shift+V).
+  4. Đảm bảo cột `Month`, `B/L`, `INVOICE NO.`, `CDS NO.` để **Plain text** (Format → Plain text) trước khi dán, tránh số khoa học / ngày.
+  5. Không đổi thứ tự/tên cột.
 - (Chi tiết từng nút bấm sẽ đưa vào SOP tháng khi Chặng 2 chốt.)
 
 > **[ASSUMPTION-W02]** Đẩy dữ liệu là **thủ công copy/paste** mỗi tháng. Chưa tự động Excel→Sheets. Ghi ở `ASSUMPTION_LOG.md`.

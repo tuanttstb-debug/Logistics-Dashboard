@@ -21,11 +21,11 @@ Logistics-Dashboard/
 
 Mở `index.html` bằng trình duyệt. Chưa có `GS_WEBAPP_URL` → hiện màn hình placeholder (bình thường).
 
-## Kết nối dữ liệu (Chặng sau)
+## Kết nối dữ liệu
 
-1. Tạo Google Sheet, tab `fact_CostLines`; dán dữ liệu từ Excel (xem `AI_CONTEXT/DATA_CONTRACT.md`).
-2. Dán mã trong `backend/` vào Apps Script của Sheet, Deploy → Web App → copy URL.
-3. Dán URL vào `config/env.js` (`GS_WEBAPP_URL`).
+👉 **Làm theo từng bước ở `AI_CONTEXT/SOP_DEPLOY.md`** (từng nút bấm, tiếng Việt).
+
+Tóm tắt: (1) tạo Google Sheet + tab `fact_CostLines`, dán **cột A:X từ dòng 9** của `40_FACT_CostLines`; (2) dán `backend/*.gs` vào Apps Script, Deploy → Web App; (3) dán URL vào `config/env.js` (`GS_WEBAPP_URL`).
 
 ## Tài liệu bắt buộc đọc
 

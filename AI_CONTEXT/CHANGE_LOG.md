@@ -2,6 +2,22 @@
 
 > Ghi mọi thay đổi, mới nhất trên cùng.
 
+## 2026-07-22 (chiều) — Xác định phạm vi DB thật + hoàn thiện GAS
+
+### Bối cảnh
+Đối chiếu 2 file Excel thật (đọc bản copy, không đụng gốc): `Logistics record JUN 2026.xlsx` (hệ thủ công AS-IS, không phải DB) và `Logistics_System.xlsx` (Power Query, chứa DB).
+
+### Phát hiện & quyết định
+- **QĐ-41:** DB = `40_FACT_CostLines` **cột A:X, header dòng 9** (1.480 dòng T6/2026). Bỏ ghi chú dòng 1–8 và legend AF:AZ (schema v2). Cột A:X **khớp** DATA_CONTRACT, trừ tên thật `INVOICE NO.`/`CDS NO.` (có dấu chấm).
+- **QĐ-42:** fact chỉ có 1 tháng (2026-06) → so sánh kỳ/YTD hiển thị "—"; chấp nhận, chưa backfill.
+- Số thật: VVMV 63%; Import 1389/Export 83/Third party 4/Overhead 4; route thật gồm cả **MRO, AIC, LUCID, OEM** (ngoài context G-04); **1/1480 thiếu Amount_USD**; tổng USD T6 = $44,062.
+
+### Thay đổi
+- **docs:** QĐ-41/42; cập nhật `DATA_CONTRACT.md` (nguồn A:X, header dòng 9, SOP dán A:X, tên cột `INVOICE NO.`/`CDS NO.`); `context/31` G-01/G-04.
+- **fix(js):** `constants.js` INVOICE/CDS đúng tên thật.
+- **feat(gas):** `Config.gs` thêm `COL_IE`/`COL_MONEY`; `DataService.gs` meta thêm `rowCount/impExp/missingUsd/totalUsd`.
+- **test:** node --check constants + 4 GAS PASS.
+
 ## 2026-07-22 — Chặng 2: UI thật (v0.2.0)
 
 ### Bối cảnh
