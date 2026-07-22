@@ -2,6 +2,17 @@
 
 > Ghi mọi thay đổi, mới nhất trên cùng.
 
+## 2026-07-22 (khuya) — Nối GAS Web App thật + script tạo sheet
+
+### Thay đổi
+- **feat(gas):** thêm `backend/Setup.gs` — hàm `setupSheets()` chạy 1 lần trong Apps Script editor: tạo tab `fact_CostLines`, ghi 24 header mẫu (A:X), freeze dòng 1, đặt cột khóa Month/B-L/INVOICE/CDS = Plain text. Idempotent, không xóa dữ liệu.
+- **feat(env):** dán `GS_WEBAPP_URL` thật (`AKfycby28…/exec`) vào `config/env.js`, đặt `USE_MOCK: false` → app đọc dữ liệu thật.
+- **kiểm:** `?action=ping` → `{ok:true,version:0.2.0}` ✅. `?action=meta` báo thiếu tab `fact_CostLines` (đúng — chưa chạy `setupSheets` + chưa dán data).
+
+### Còn lại
+- Chạy `setupSheets()` trong editor → dán A:X (từ dòng 9 Excel) vào ô A1 (Paste values only) → refresh web.
+- ⚠️ Web App "Anyone" + repo còn nợ bảo mật (TD-11): ai có URL đọc được cost data thật khi sheet đã dán.
+
 ## 2026-07-22 (chiều) — Xác định phạm vi DB thật + hoàn thiện GAS
 
 ### Bối cảnh

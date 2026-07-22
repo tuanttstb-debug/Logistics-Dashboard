@@ -17,6 +17,8 @@
 1. Dưới cùng, chuột phải tab **"Sheet1"** → **Rename** → gõ chính xác **`fact_CostLines`** → Enter.
 > *Tại sao:* GAS tìm tab đúng tên này (`CONFIG.FACT_TAB`). Sai tên → không có dữ liệu.
 
+> **⚡ Cách nhanh (thay A2–A3):** nếu đã dán `backend/Setup.gs` vào Apps Script (Phần B), chỉ cần chọn hàm **`setupSheets`** → ▶ Run. Nó **tự** tạo tab `fact_CostLines`, ghi 24 header mẫu, freeze dòng 1 và đặt Plain text cho cột khóa. Sau đó nhảy tới **A4** (lấy dữ liệu) rồi **A5** (dán đè lên header mẫu).
+
 ### A3. Định dạng cột chống lỗi số (LÀM TRƯỚC KHI DÁN)
 1. Bấm chọn **cả cột A** (bấm chữ "A" trên đầu cột), giữ **Ctrl** bấm thêm đầu cột của **B/L, INVOICE NO., CDS NO.** *(tạm thời cứ chọn A, B, D, E — sẽ khớp sau khi dán)*. Đơn giản nhất: chọn **toàn bộ A:E**.
 2. Menu **Format (Định dạng)** → **Number (Số)** → **Plain text (Văn bản thuần)**.
@@ -55,7 +57,7 @@
 ### B2. Tạo 4 file .gs khớp `backend/`
 1. Trong Apps Script, file mặc định tên **`Code.gs`** đang mở → xóa hết nội dung mẫu, **dán** toàn bộ nội dung `backend/Code.gs`.
 2. Bấm dấu **➕** cạnh "Files" → **Script** → đặt tên **`Config`** → dán nội dung `backend/Config.gs`.
-3. Lặp lại tạo **`DataService`** (dán `backend/DataService.gs`) và **`Utils`** (dán `backend/Utils.gs`).
+3. Lặp lại tạo **`DataService`** (dán `backend/DataService.gs`), **`Utils`** (dán `backend/Utils.gs`) và **`Setup`** (dán `backend/Setup.gs` — script tạo tab tự động).
 4. Bấm biểu tượng **💾 Save** (hoặc Ctrl+S).
 > *Tại sao:* Apps Script gom tất cả file `.gs` thành một chương trình; tên file không cần đuôi `.gs` khi tạo.
 
