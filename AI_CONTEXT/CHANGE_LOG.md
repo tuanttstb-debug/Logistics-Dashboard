@@ -20,6 +20,12 @@
 - **feat(env):** dán `GS_WEBAPP_URL` thật (`AKfycby28…/exec`) vào `config/env.js`, đặt `USE_MOCK: false` → app đọc dữ liệu thật.
 - **kiểm:** `?action=ping` → `{ok:true,version:0.2.0}` ✅. `?action=meta` báo thiếu tab `fact_CostLines` (đúng — chưa chạy `setupSheets` + chưa dán data).
 
+### Fix sau rebuild thật
+- **writeFact_ làm chủ tab:** xóa hẳn + tạo mới (tránh header cũ lệch cột, format ngày, lỗi "cột đã nhập").
+- **getReportMonth_/monthKey_:** validate `YYYY-MM`, ép Date→YYYY-MM (Sheets tự đổi tháng thành ngày).
+- **Giữ đúng bộ cột §6 (10_MODEL_SPEC):** staging courier dùng bản đồ `keep` — DHL/FedEx bỏ dư `INVOICE NO.` (đối chiếu fact Excel: DHL/FedEx chỉ giữ B/L·Shipper·Consignee·Origin·Destination·CW). Khuôn cho VVMV/Dolphin/EI (ghi chú kèm code).
+- **Nút Đồng bộ web:** `refreshData()` (spinner+toast) thay F5.
+
 ### Còn lại
 - Chạy `setupSheets()` trong editor → dán A:X (từ dòng 9 Excel) vào ô A1 (Paste values only) → refresh web.
 - ⚠️ Web App "Anyone" + repo còn nợ bảo mật (TD-11): ai có URL đọc được cost data thật khi sheet đã dán.
