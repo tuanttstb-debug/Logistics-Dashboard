@@ -50,3 +50,8 @@
   background: var(--bg-surface); border: 1px solid var(--border); box-shadow: var(--shadow-2); }
 .toast--error { border-left: 4px solid var(--pos); }
 .toast--ok { border-left: 4px solid var(--neg); }
+
+/* Nút Đồng bộ đang tải — xoay biểu tượng ↻ */
+@keyframes spin { to { transform: rotate(360deg); } }
+.btn.is-spinning { animation: spin .7s linear infinite; }
+.btn:disabled { opacity: .6; cursor: default; }
