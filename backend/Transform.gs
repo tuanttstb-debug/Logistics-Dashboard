@@ -216,16 +216,19 @@ function readSheetFirst_(ss, tabNames, requiredCols) {
 }
 
 function writeFact_(ss, fact) {
-  var sh = ss.getSheetByName(CONFIG.FACT_TAB);
-  if (!sh) { sh = ss.insertSheet(CONFIG.FACT_TAB); }
+  // rebuildFact LÀM CHỦ tab này: XÓA HẲN tab cũ rồi tạo mới tinh — tránh header/data lệch,
+  // cột thừa, format ngày, và lỗi "cột đã nhập" (di sản từ bản Excel dán vào) khi set format.
+  var name = CONFIG.FACT_TAB;
+  var old = ss.getSheetByName(name);
+  if (old) ss.deleteSheet(old);
+  var sh = ss.insertSheet(name);
 
-  // rebuildFact LÀM CHỦ tab này: xóa SẠCH (nội dung + format cũ) để header/data không lệch,
-  // không dính cột thừa hay format ngày từ bản Excel dán trước đó.
-  sh.clear();
   sh.getRange(1, 1, 1, FACT_HEADERS.length).setValues([FACT_HEADERS]).setFontWeight('bold');
   sh.setFrozenRows(1);
   // Cột khóa Plain text → 'Month' không bị ép thành ngày; B/L/INVOICE/CDS giữ nguyên mã
-  [1, 3, 4, 5].forEach(function (c) { sh.getRange(1, c, sh.getMaxRows(), 1).setNumberFormat('@'); });
+  try {
+    [1, 3, 4, 5].forEach(function (c) { sh.getRange(1, c, sh.getMaxRows(), 1).setNumberFormat('@'); });
+  } catch (e) { Logger.log('Cảnh báo: không set được Plain text cột khóa — ' + e.message); }
 
   if (fact.length) {
     var matrix = fact.map(function (o) {
