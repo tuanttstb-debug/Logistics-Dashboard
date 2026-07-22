@@ -3,10 +3,10 @@
  * MỤC TIÊU: Google Sheets là KHO quản lý toàn bộ Raw data (QĐ-43).
  *   - 11 tab RAW (10–19): mỗi nguồn/forwarder một tab, giữ đúng header gốc của file
  *     `Logistics_System.xlsx` (sheet 10_DHL_Raw … 19_Overhead_Raw).
- *   - 1 tab FACT (`fact_CostLines`): bảng đã Power Query hoá — WEB CHỈ ĐỌC tab này.
+ *   - 1 tab FACT (`40_FACT_CostLines`): bảng đã Power Query hoá — WEB CHỈ ĐỌC tab này.
  *
  * LUỒNG (QĐ-34/35 giữ nguyên): Excel vẫn là ENGINE (Power Query tính fact).
- *   Sheets là nơi LƯU raw + fact. Web đọc `fact_CostLines`. KHÔNG tính toán trên Sheets.
+ *   Sheets là nơi LƯU raw + fact. Web đọc `40_FACT_CostLines`. KHÔNG tính toán trên Sheets.
  *
  * CÁCH DÙNG:
  *   1. Dán file này vào Apps Script của Google Sheet (Extensions → Apps Script).
@@ -32,7 +32,7 @@ var TAB_SPECS = [
   { name: '19_Overhead_Raw', headers: ['Forwarder','B/L','Original Cost Name','Amount (VND)'], textCols: null },
 
   // FACT — web chỉ đọc tab này. Text cột khóa: Month(A), B/L(C), INVOICE NO.(D), CDS NO.(E)
-  { name: 'fact_CostLines', headers: ['Month','Forwarder','B/L','INVOICE NO.','CDS NO.','Shipper','Consignee','Origin','Destination','Mode','CW','CBM','Original Cost Name','Amount','Currency','Exchange Rate','USD_Rate','Amount_USD','Standard Cost','FWD Column','Mode chuẩn','Import/Export','Route','Loại hàng'], textCols: [1, 3, 4, 5] },
+  { name: '40_FACT_CostLines', headers: ['Month','Forwarder','B/L','INVOICE NO.','CDS NO.','Shipper','Consignee','Origin','Destination','Mode','CW','CBM','Original Cost Name','Amount','Currency','Exchange Rate','USD_Rate','Amount_USD','Standard Cost','FWD Column','Mode chuẩn','Import/Export','Route','Loại hàng'], textCols: [1, 3, 4, 5] },
 ];
 
 function setupSheets() {
@@ -54,10 +54,24 @@ function setupSheets() {
     log.push('🗑️ Xóa tab rỗng "Sheet1".');
   }
 
-  var msg = 'Setup DB xong (' + TAB_SPECS.length + ' tab):\n' + log.join('\n');
+  log.push(ensureConfigTab_(ss));
+
+  var msg = 'Setup DB xong (' + TAB_SPECS.length + ' tab + Config):\n' + log.join('\n');
   Logger.log(msg);
   return msg;
 }
+
+// Tab 00_Config: A1='ThangBaoCao', B1=tháng báo cáo YYYY-MM (Transform.gs::getReportMonth_ đọc)
+function ensureConfigTab_(ss) {
+  var sh = ss.getSheetByName('00_Config');
+  if (sh) return 'ℹ️ CÓ "00_Config" (B1=' + (str_cfg_(sh.getRange('B1').getValue()) || '(trống — điền YYYY-MM)') + ')';
+  sh = ss.insertSheet('00_Config', 0); // đưa lên đầu
+  sh.getRange('A1').setValue('ThangBaoCao').setFontWeight('bold');
+  sh.getRange('B1').setNumberFormat('@').setValue('');
+  sh.getRange('A2').setValue('→ Điền tháng báo cáo YYYY-MM vào ô B1 (vd 2026-06) rồi chạy rebuildFact()');
+  return '✅ TẠO "00_Config" — nhớ điền tháng vào ô B1';
+}
+function str_cfg_(v) { return v === null || v === undefined ? '' : String(v).trim(); }
 
 // Tạo/đảm bảo 1 tab: header khi rỗng + freeze dòng 1 + Plain text cột khóa
 function ensureTab_(ss, spec) {

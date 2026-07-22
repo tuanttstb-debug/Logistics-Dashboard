@@ -18,11 +18,18 @@ DB trên Google Sheets quản lý **toàn bộ raw data** + bảng fact. **Excel
 | `17_CustomsDetail_Raw` | Chi tiết tờ khai (Route/Loại hàng) | 31 | sheet 17 |
 | `18_ImportPOB_Raw` | Import Pay-on-behalf | 7 | sheet 18 |
 | `19_Overhead_Raw` | Chi phí chung (VND) | 4 | sheet 19 |
-| **`fact_CostLines`** | **Bảng fact — WEB ĐỌC TAB NÀY** | 24 (A:X) | sheet 40 |
+| **`40_FACT_CostLines`** | **Bảng fact — WEB ĐỌC TAB NÀY** (rebuildFact ghi ra) | 24 (A:X) | sheet 40 |
 
 - Tab raw: **header 1 dòng** (bỏ khối ghi chú/hướng dẫn của file Excel), **tất cả cột để Plain text** để giữ nguyên vẹn mã (Invoice/AWB/B/L/CDS/tờ khai) và ngày.
 - Tạo tự động bằng `backend/Setup.gs` → hàm `setupSheets()`. Idempotent, không xóa data.
-- Đẩy dữ liệu: dán raw từng nguồn vào tab tương ứng; dán `fact_CostLines` A:X (§2). Excel giữ vai trò tính fact.
+
+### 0.1. Dựng fact bằng GAS (QĐ-44) — thay Power Query
+
+`fact_CostLines` nay do **`backend/Transform.gs::rebuildFact()`** dựng TỪ raw, **không** dán từ Excel nữa:
+- **Cơ chế batch:** owner chạy `rebuildFact()` (menu *Logistics DB → Rebuild fact*, hoặc editor) sau khi dán raw → GAS đọc raw + `22_Map_Cost` + `23_Map_ExchangeRate` + tháng ở **`00_Config!B1`**, tính, GHI ra tab `40_FACT_CostLines`. Web CHỈ ĐỌC fact (nhanh).
+- **Phụ thuộc trên Sheets:** `22_Map_Cost` (Forwarder, Original Cost Name, Standard Cost, FWD Column), `23_Map_ExchangeRate` (Month, USD_Rate), `00_Config` (A1=`ThangBaoCao`, B1=`YYYY-MM`).
+- **v1 (tăng dần):** courier DHL/FedEx Exp/Imp + Overhead; trường lõi `Amount_USD`·`Standard Cost`·`Mode chuẩn`·`Import/Export` (Route/Loại hàng null). VVMV/Dolphin/EI + Route/Loại hàng bổ sung sau.
+- **Đối chiếu:** v1 = 481 dòng/$12.940,87; đủ 7 nguồn = 1.480/$44.062. Excel PQ giữ vai trò **tham chiếu logic** (`context/11_BUSINESS_RULES.md`).
 
 ## 1. Nguồn: kho `fact_CostLines`
 

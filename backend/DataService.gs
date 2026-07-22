@@ -1,4 +1,4 @@
-/** DataService.gs — đọc fact_CostLines, trả về cho web. Web CHỈ ĐỌC. */
+/** DataService.gs — đọc 40_FACT_CostLines, trả về cho web. Web CHỈ ĐỌC. */
 
 function getFacts(month) {
   var rows = readTabAsObjects(CONFIG.FACT_TAB);

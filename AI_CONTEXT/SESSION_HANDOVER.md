@@ -2,6 +2,31 @@
 
 > Mới nhất trên cùng. Mỗi phiên một block. Chỉ ghi delta của phiên.
 
+## 2026-07-22 (khuya-2) — GAS engine dựng fact từ raw (QĐ-44)
+
+### ✅ Task completed
+- Nghiên cứu Power Query cũ (`context/10_MODEL_SPEC`, `11_BUSINESS_RULES`) + trích Map_Cost (57 dòng), header 11 raw, mục tiêu đối chiếu.
+- **Viết `backend/Transform.gs`** — `rebuildFact()`: batch dựng `40_FACT_CostLines` TỪ raw (thay PQ). v1 courier+overhead, lõi 4 trường. Menu `onOpen()`.
+- `Setup.gs` thêm tab `00_Config`; **đổi tên tab fact** `fact_CostLines`→`40_FACT_CostLines` (Config/Setup/Transform).
+
+### 🧭 Decision
+- **QĐ-44:** GAS tự dựng fact từ raw (batch rebuildFact, ghi `40_FACT_CostLines`); v1 tăng dần courier→VVMV/Dolphin/EI; lõi 4 trường. THAY một phần QĐ-43 (Excel PQ nay là tham chiếu).
+
+### 🚧 Blocker / lưu ý
+- User đã dán map 22/23/24/26 + raw 10–19 lên Sheets. **Chưa** chạy `rebuildFact()`.
+- Tab cũ `fact_CostLines` (nếu đã tạo) thành orphan → **rename thành `40_FACT_CostLines`** hoặc chạy lại `setupSheets()` (tự tạo tab mới).
+- 🔴 Nợ bảo mật TD-11 vẫn nguyên.
+
+### ➡️ Next step
+1. Dán `Transform.gs` + `Setup.gs` mới vào Apps Script. Tạo/điền `00_Config!B1='2026-06'`.
+2. Chạy `rebuildFact()` (menu *Logistics DB → Rebuild fact*). Đối chiếu log: **481 dòng / $12.940,87**.
+3. `curl ?action=meta` (rowCount≈481, totalUsd≈12940.87) → refresh web.
+4. Sau khi khớp: cắm staging VVMV/Dolphin/EI, rồi Route/Loại hàng.
+
+### ⚠️ Regression risk
+- `rebuildFact` **ghi đè** toàn bộ `40_FACT_CostLines` bằng v1 (courier+overhead) → tổng dashboard tạm còn ~$12.940 tới khi thêm 3 nguồn còn lại.
+- Lọc dòng Total của DHL dựa AWB trống — nếu debit hãng khác có kiểu total khác cần bổ sung luật.
+
 ## 2026-07-22 (khuya) — Nối GAS Web App thật + script tạo sheet
 
 ### ✅ Task completed

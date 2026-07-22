@@ -2,6 +2,15 @@
 
 > Ghi mọi thay đổi, mới nhất trên cùng.
 
+## 2026-07-22 (khuya-2) — GAS engine dựng fact từ raw (QĐ-44)
+
+### Thay đổi
+- **feat(gas):** `backend/Transform.gs` — `rebuildFact()` dựng `40_FACT_CostLines` TỪ raw 10–19 (thay Power Query). Batch: đọc raw + `22_Map_Cost` + `23_Map_ExchangeRate` + tháng `00_Config!B1` → GHI fact. Menu `onOpen()`. **v1:** courier (DHL/FedEx Exp/Imp) + Overhead; lõi 4 trường (Amount_USD·Standard Cost·Mode chuẩn·Import/Export). Reader tự dò header, `num_` parse text→số. QC log phí chưa map.
+- **feat(gas):** `Setup.gs` thêm tab `00_Config` (A1=ThangBaoCao, B1=YYYY-MM).
+- **rename:** tab fact `fact_CostLines` → **`40_FACT_CostLines`** (khớp quy ước raw 10–19) — `Config.FACT_TAB`, `Setup`, `Transform`. Web đọc + rebuildFact ghi cùng tab này.
+- **Đối chiếu v1 (từ Excel):** 481 dòng/$12.940,87 (DHL 23/$1.398,37 · FedExExp 25/$585,09 · FedExImp 429/$9.890,95 · Overhead 4/$1.066,46). Đủ 7 nguồn: 1.480/$44.062.
+- **docs:** QĐ-44; DATA_CONTRACT §0.1; SYSTEM_ARCHITECTURE.
+
 ## 2026-07-22 (khuya) — Nối GAS Web App thật + DB đa-tab raw
 
 ### Thay đổi
