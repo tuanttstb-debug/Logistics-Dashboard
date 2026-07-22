@@ -36,10 +36,10 @@ Các trường **chưa có** trong `fact_CostLines`, làm hạn chế phân tíc
 
 | # | Chưa biết | Vì sao cần |
 |---|---|---|
-| **G-01** | Kho hiện có **bao nhiêu tháng dữ liệu**? Bắt đầu từ tháng nào? | Quyết định phân tích xu hướng có ý nghĩa hay không |
+| ~~G-01~~ | ✅ **Đối chiếu 2026-07-22:** `40_FACT_CostLines` hiện chỉ có **1 tháng = 2026-06** (~1.480 dòng). Lịch sử 2025-01→2026-05 nằm ở file record cũ, chưa vào fact (QĐ-42) | Xu hướng nhiều tháng chưa có tới khi dán thêm |
 | **G-02** | **Quy mô chi phí logistics/năm** của công ty | Đánh giá độ lớn của cơ hội tiết kiệm |
 | **G-03** | CEO có đặt **mục tiêu tiết kiệm cụ thể** không? | Đặt target cho initiative |
-| **G-04** | Danh sách đầy đủ trong **`24_List_Project`** | Kiểm Route lạ; báo cáo theo dự án. Đã biết một phần: `PURE`, `EFI`, `AGIGA`, `Ford`, `Other` |
+| **G-04** | Danh sách đầy đủ trong **`24_List_Project`** | Kiểm Route lạ; báo cáo theo dự án. Route THẬT trong fact T6/2026: `PURE`(846) `LUCID`(202) `OEM`(146) `EFI`(125) `FORD`(56) `MRO`(49) `Other`(35) `AIC`(16) `AGIGA`(1) + 4 dòng trống. *(MRO/AIC/LUCID/OEM chưa có trong danh sách cũ)* |
 | **G-05** | **Nội dung `Map_Cost`** — danh sách tên phí gốc → nhóm chuẩn của từng forwarder | Cần khi debug phí chưa map |
 | **G-06** | Ai vận hành file hàng tháng ngoài người dùng chính? | Mức độ chi tiết cần cho SOP |
 | **G-07** | Đã có **sáng kiến Kaizen** nào đang chạy chưa? | Tránh trùng lặp |

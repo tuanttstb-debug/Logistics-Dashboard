@@ -1,7 +1,7 @@
 /* constants.js — tên cột fact_CostLines + hằng số. GIỮ ĐÚNG tên gốc (DATA_CONTRACT.md). */
 (function () {
   window.COLS = {
-    MONTH: 'Month', FORWARDER: 'Forwarder', BL: 'B/L', INVOICE: 'Invoice No', CDS: 'CDS No',
+    MONTH: 'Month', FORWARDER: 'Forwarder', BL: 'B/L', INVOICE: 'INVOICE NO.', CDS: 'CDS NO.',
     CW: 'CW', CBM: 'CBM',
     ORIGINAL_COST: 'Original Cost Name', AMOUNT: 'Amount', CURRENCY: 'Currency',
     USD_RATE: 'USD_Rate', AMOUNT_USD: 'Amount_USD',
