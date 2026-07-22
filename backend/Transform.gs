@@ -218,13 +218,15 @@ function readSheetFirst_(ss, tabNames, requiredCols) {
 function writeFact_(ss, fact) {
   var sh = ss.getSheetByName(CONFIG.FACT_TAB);
   if (!sh) { sh = ss.insertSheet(CONFIG.FACT_TAB); }
-  if (sh.getLastRow() === 0) {
-    sh.getRange(1, 1, 1, FACT_HEADERS.length).setValues([FACT_HEADERS]).setFontWeight('bold');
-    sh.setFrozenRows(1);
-  }
-  // Xóa data cũ (giữ header), viết mới
-  var last = sh.getLastRow();
-  if (last > 1) sh.getRange(2, 1, last - 1, FACT_HEADERS.length).clearContent();
+
+  // rebuildFact LÀM CHỦ tab này: xóa SẠCH (nội dung + format cũ) để header/data không lệch,
+  // không dính cột thừa hay format ngày từ bản Excel dán trước đó.
+  sh.clear();
+  sh.getRange(1, 1, 1, FACT_HEADERS.length).setValues([FACT_HEADERS]).setFontWeight('bold');
+  sh.setFrozenRows(1);
+  // Cột khóa Plain text → 'Month' không bị ép thành ngày; B/L/INVOICE/CDS giữ nguyên mã
+  [1, 3, 4, 5].forEach(function (c) { sh.getRange(1, c, sh.getMaxRows(), 1).setNumberFormat('@'); });
+
   if (fact.length) {
     var matrix = fact.map(function (o) {
       return FACT_HEADERS.map(function (h) { return o[h] === undefined ? null : o[h]; });
