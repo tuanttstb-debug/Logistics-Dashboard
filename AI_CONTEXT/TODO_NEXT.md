@@ -2,13 +2,19 @@
 
 > Việc kế tiếp theo ưu tiên. Delta phiên 2026-07-22. Checklist ngắn ở `TODO.md`.
 
+## 🔴 Ưu tiên 0 — BẢO MẬT lịch sử data (MỚI)
+- [ ] Đổi repo sang **Private** (GitHub → Settings → Danger Zone) — làm ngay.
+- [ ] Quyết có **rewrite history + force-push** để xóa `data/` khỏi mọi commit (`8b008e6`, `d26e33a`) không. Xem `TECH_DEBT.md` TD-11.
+- [x] Gỡ `data/` khỏi tracking + `.gitignore` (push `ba780e2`) — chỉ hết ở bản mới, **chưa** hết lịch sử.
+
 ## ✅ Ưu tiên 1 — Git (XONG)
-- [x] `git init` + commit `8b008e6` + push `origin/main` (github.com/tuanttstb-debug/Logistics-Dashboard). Dọn clone rỗng lồng nhau.
+- [x] `git init` + push `origin/main`. Dọn clone rỗng lồng nhau.
 
 ## 🔴 Ưu tiên 2 — Kết nối dữ liệu thật
 - [x] **Xác định phạm vi DB** (QĐ-41/42): `40_FACT_CostLines` A:X, header dòng 9, 1 tháng (2026-06).
 - [x] Hoàn thiện GAS BE (`Config`/`DataService`/`Code`/`Utils`) khớp scope; sửa tên cột thật.
-- [ ] Tạo Google Sheet, tab `fact_CostLines`; **dán A:X từ dòng 9** (xem SOP trong `DATA_CONTRACT.md` §2).
+- [x] Viết **`SOP_DEPLOY.md`** (tạo Sheet + dán A:X + deploy GAS + nối env.js).
+- [ ] **Chạy SOP_DEPLOY**: tạo Google Sheet, tab `fact_CostLines`, dán A:X từ dòng 9 → deploy Web App → dán URL `env.js`.
 - [ ] Dán mã `backend/*.gs` vào Apps Script của Sheet; Deploy → Web app → copy `/exec` URL.
 - [ ] Dán URL vào `config/env.js` `GS_WEBAPP_URL`; kiểm `?action=ping|facts|meta`.
 - [ ] `USE_MOCK` để `true` cũng được (tự bỏ qua khi có URL), hoặc set `false`.
