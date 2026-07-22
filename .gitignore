@@ -17,6 +17,5 @@ config/env.local.js
 *.log
 
 # ─────────────────────────────────────────────
-# data/Logistics_System.xlsx: MẶC ĐỊNH CÓ commit (versioning engine).
-# Nếu KHÔNG muốn đẩy dữ liệu thật lên GitHub, bỏ comment dòng dưới:
-# data/
+# Dữ liệu thật KHÔNG đẩy lên GitHub (chứa thông tin công ty). Giữ trên máy cục bộ.
+data/
