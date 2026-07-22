@@ -1,0 +1,26 @@
+/* report.css — dashboard grid, chart, bảng báo cáo, màu so sánh kỳ */
+
+.topbar-month { display: flex; align-items: center; gap: var(--space-2); color: var(--text-2); font-size: 13px; }
+
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); margin-bottom: var(--space-6); }
+.chart-box { position: relative; height: 260px; }
+.chart-box--wide { height: 300px; }
+
+/* Bảng báo cáo forwarder */
+.report-card { margin-bottom: var(--space-6); }
+.tbl-report td:first-child, .tbl-report th:first-child { min-width: 220px; }
+.tbl-report .row-block td { background: var(--bg-muted); font-weight: 600; }
+.tbl-report .row-line td:first-child { color: var(--text-2); font-weight: 400; }
+.tbl-report .row-total td { border-top: 2px solid var(--brand); font-weight: 700; }
+.tbl .num { text-align: right; font-variant-numeric: tabular-nums; }
+.tbl .ytd { color: var(--text-2); }
+.row-total .ytd { color: inherit; }
+
+/* % thay đổi — chi phí TĂNG = đỏ, GIẢM = xanh */
+.delta.up   { color: var(--pos); }
+.delta.down { color: var(--neg); }
+.delta { font-weight: 600; }
+
+@media (max-width: 900px) {
+  .grid-2 { grid-template-columns: 1fr; }
+}
