@@ -1,0 +1,31 @@
+/* layout.css — app shell: sidebar + topbar + main */
+.app { display: flex; min-height: 100vh; }
+
+.app-sidebar {
+  width: var(--sidebar-w); flex: 0 0 var(--sidebar-w);
+  background: var(--brand-navy); color: #dbeafe;
+  display: flex; flex-direction: column; padding: var(--space-4);
+}
+.sidebar-brand { display: flex; align-items: center; gap: var(--space-2);
+  color: #fff; font-weight: 700; font-size: 16px; margin-bottom: var(--space-6); }
+.sidebar-brand .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
+.sidebar-nav { display: flex; flex-direction: column; gap: 2px; }
+.nav-item { display: flex; align-items: center; gap: var(--space-3);
+  padding: var(--space-3); border-radius: var(--radius-md);
+  color: #b6c7d6; cursor: pointer; }
+.nav-item:hover { background: rgba(255,255,255,.06); color: #fff; }
+.nav-item.is-active { background: rgba(255,255,255,.12); color: #fff; }
+.sidebar-foot { margin-top: auto; font-size: 12px; color: #7d94a8; }
+
+.app-body { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.app-topbar {
+  height: 60px; display: flex; align-items: center; gap: var(--space-4);
+  padding: 0 var(--space-6); background: var(--bg-surface);
+  border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 20;
+}
+.topbar-title { font-size: 17px; }
+.topbar-actions { margin-left: auto; display: flex; align-items: center; gap: var(--space-3); }
+.topbar-toggle { display: none; background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-1); }
+
+.app-main { padding: var(--space-6); flex: 1; }
+.sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 15; }

@@ -1,0 +1,40 @@
+/* variables.css — TẤT CẢ token. Nạp ĐẦU TIÊN. Xem AI_CONTEXT/THEME_ARCHITECTURE.md */
+:root, :root[data-theme="light"] {
+  --bg-app:      #f5f7fa;
+  --bg-surface:  #ffffff;
+  --bg-muted:    #eef2f6;
+  --text-1:      #0f2233;
+  --text-2:      #5b6b7a;
+  --border:      #e2e8f0;
+  --brand:       #0e7490;
+  --brand-navy:  #0f2a43;
+  --accent:      #06b6d4;
+  --pos:         #dc2626;  /* chi phí TĂNG = đỏ */
+  --neg:         #16a34a;  /* chi phí GIẢM = xanh */
+  --warn:        #d97706;
+  --shadow-1: 0 1px 2px rgba(15,34,51,.06);
+  --shadow-2: 0 4px 16px rgba(15,34,51,.10);
+}
+:root[data-theme="dark"] {
+  --bg-app:      #0b1620;
+  --bg-surface:  #12212f;
+  --bg-muted:    #182b3c;
+  --text-1:      #e6eef5;
+  --text-2:      #9fb2c2;
+  --border:      #1e3345;
+  --brand:       #22d3ee;
+  --brand-navy:  #0a1a2a;
+  --accent:      #38bdf8;
+  --pos:         #f87171;
+  --neg:         #4ade80;
+  --warn:        #fbbf24;
+  --shadow-1: 0 1px 2px rgba(0,0,0,.3);
+  --shadow-2: 0 4px 18px rgba(0,0,0,.45);
+}
+:root {
+  --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;
+  --space-5: 20px; --space-6: 24px; --space-8: 32px;
+  --radius-sm: 6px; --radius-md: 10px; --radius-lg: 14px; --radius-xl: 18px;
+  --sidebar-w: 240px;
+  --font: 'Segoe UI', system-ui, -apple-system, Arial, sans-serif;
+}

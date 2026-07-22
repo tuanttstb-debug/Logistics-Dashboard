@@ -1,0 +1,22 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Excel temp/lock files (KHÔNG commit file khóa tạm)
+~$*.xlsx
+*.tmp
+
+# Editor
+.vscode/
+.idea/
+
+# Local env override (nếu tách URL thật ra khỏi repo)
+config/env.local.js
+
+# Logs
+*.log
+
+# ─────────────────────────────────────────────
+# data/Logistics_System.xlsx: MẶC ĐỊNH CÓ commit (versioning engine).
+# Nếu KHÔNG muốn đẩy dữ liệu thật lên GitHub, bỏ comment dòng dưới:
+# data/

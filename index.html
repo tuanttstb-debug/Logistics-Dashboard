@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Logistics Cost Dashboard</title>
+  <!-- Thứ tự CSS: variables PHẢI đầu tiên -->
+  <link rel="stylesheet" href="assets/css/variables.css">
+  <link rel="stylesheet" href="assets/css/base.css">
+  <link rel="stylesheet" href="assets/css/layout.css">
+  <link rel="stylesheet" href="assets/css/components.css">
+  <link rel="stylesheet" href="assets/css/report.css">
+  <link rel="stylesheet" href="assets/css/responsive.css">
+  <!-- Chart.js (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <div class="app">
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    <aside class="app-sidebar" id="sidebar">
+      <a class="sidebar-brand" href="#"><span class="dot"></span> Logistics Cost</a>
+      <nav class="sidebar-nav">
+        <div class="nav-item is-active" data-view="dashboard">📊 Dashboard</div>
+        <div class="nav-item" data-view="forwarder">📄 Báo cáo CEO</div>
+        <div class="nav-item" data-view="route">🚚 Theo Route</div>
+        <div class="nav-item" data-view="about">ℹ️ Giới thiệu</div>
+      </nav>
+      <div class="sidebar-foot">v0.2.0 · Chặng 2</div>
+    </aside>
+
+    <div class="app-body">
+      <header class="app-topbar">
+        <button class="topbar-toggle" id="sidebarToggle" aria-label="Mở menu">☰</button>
+        <h1 class="topbar-title" id="topbarTitle">Dashboard chi phí logistics</h1>
+        <div class="topbar-actions">
+          <label class="topbar-month">Tháng
+            <select class="select" id="monthSelect" aria-label="Chọn tháng"></select>
+          </label>
+          <button class="btn btn--ghost" id="refreshBtn" aria-label="Tải lại">↻</button>
+          <button class="btn btn--ghost" id="themeBtn" aria-label="Đổi giao diện">🌓</button>
+        </div>
+      </header>
+      <main class="app-main" id="view"><!-- render vào đây --></main>
+    </div>
+  </div>
+
+  <!-- Thứ tự JS (critical path — xem SYSTEM_ARCHITECTURE.md):
+       env → routes → constants → mock-data → helpers → api → store → report → views → app -->
+  <script src="config/env.js"></script>
+  <script src="config/routes.js"></script>
+  <script src="assets/js/constants.js"></script>
+  <script src="assets/js/mock-data.js"></script>
+  <script src="assets/js/helpers.js"></script>
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/store.js"></script>
+  <script src="assets/js/report.js"></script>
+  <script src="assets/js/views.js"></script>
+  <script src="assets/js/app.js"></script>
+</body>
+</html>
