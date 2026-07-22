@@ -2,9 +2,8 @@
 
 > Việc kế tiếp theo ưu tiên. Delta phiên 2026-07-22. Checklist ngắn ở `TODO.md`.
 
-## 🔴 Ưu tiên 1 — Git
-- [ ] Làm rõ: repo đã init/push ở đâu chưa? Thư mục hiện tại **chưa có `.git`**.
-- [ ] `git init` (nếu chưa) → `.gitignore` đã sẵn → commit "Chặng 1+2" → tạo/nối remote → push `main`.
+## ✅ Ưu tiên 1 — Git (XONG)
+- [x] `git init` + commit `8b008e6` + push `origin/main` (github.com/tuanttstb-debug/Logistics-Dashboard). Dọn clone rỗng lồng nhau.
 
 ## 🔴 Ưu tiên 2 — Kết nối dữ liệu thật
 - [ ] Tạo Google Sheet, tab `fact_CostLines` (tiêu đề khớp `DATA_CONTRACT.md`).
