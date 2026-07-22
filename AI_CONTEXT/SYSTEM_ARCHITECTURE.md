@@ -12,10 +12,12 @@
                                │ (đẩy fact_CostLines lên tab Sheets)
                                ▼
 ┌──────────────────────────────────────────────────────────────┐
-│  GOOGLE SHEETS (Database — KHO toàn bộ raw + fact, QĐ-43)   │
+│  GOOGLE SHEETS (Database — KHO raw + fact, QĐ-43/44)        │
 │  11 tab RAW `10_DHL_Raw`…`19_Overhead_Raw` ← raw từng nguồn │
+│  Map `22_Map_Cost`/`23_Map_ExchangeRate` · `00_Config`(tháng)│
 │  Tab `fact_CostLines`   ← bảng fact A:X, WEB CHỈ ĐỌC tab này│
-│  (Sheets KHÔNG tính toán — Excel vẫn là engine tính fact)   │
+│    ▲  GAS Transform.gs::rebuildFact() dựng fact TỪ raw (QĐ-44)│
+│    │  (batch, thay Power Query; Excel PQ nay là tham chiếu)  │
 └──────────────────────────────┬───────────────────────────────┘
                                │ SpreadsheetApp API
                                ▼
