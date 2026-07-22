@@ -21,12 +21,18 @@
 - [x] (QĐ-43) Dán raw từng nguồn vào tab 10–19; dán map 22/23/24/26.
 - [x] **(QĐ-44)** Viết `backend/Transform.gs::rebuildFact()` dựng `40_FACT_CostLines` TỪ raw (thay PQ). v1 courier+overhead. Đổi tên tab fact → `40_FACT_CostLines`. `Setup.gs` thêm `00_Config`.
 
-## 🔴 Ưu tiên 2b — Chạy & validate rebuildFact (QĐ-44)
-- [ ] Dán `Transform.gs` + `Setup.gs` mới vào Apps Script; rename tab cũ `fact_CostLines`→`40_FACT_CostLines` (hoặc chạy lại `setupSheets()`).
-- [ ] Điền `00_Config!B1='2026-06'` → chạy `rebuildFact()`. Đối chiếu **481 dòng/$12.940,87**; soi QC "phí chưa map".
-- [ ] `curl ?action=meta` (rowCount≈481) → refresh web.
-- [ ] Sau khi khớp: cắm staging **VVMV/Dolphin/EI** (unpivot, bridge B/L, EI 40 cột), rồi **Route ×3 + Loại hàng ×2**.
-- [ ] Viết **SOP đẩy Excel→Sheets** từng bước (Refresh All → copy sheet 40 → paste values).
+## ✅ Ưu tiên 2b — rebuildFact courier + fix (XONG)
+- [x] Chạy `rebuildFact()` courier+overhead; fix: validate tháng, `monthKey_`, `writeFact_` làm chủ tab (xóa+tạo), bỏ dư `INVOICE NO.` (§6), nút Đồng bộ web, deploy "New version".
+
+## 🔴 Ưu tiên 2c — Phase A: port PQ đủ 6 nguồn (ĐANG)
+- [x] Trích 22 query M gốc (`data/_source/pq_section1.m`). Viết lại `Transform.gs` theo khuôn `UnpivotOtherColumns`; thêm VVMV/Dolphin/EI.
+- [ ] **Dán `Transform.gs` mới → `rebuildFact()` → đối chiếu 1.480 dòng/$44.062** (VVMV 936/$27.056 · Dolphin 29/$2.195 · EI 37/$2.105 · DHL 23/$1.398 · FedExExp 25/$585 · FedExImp 429/$9.891 · Overhead 4/$1.066). Lệch → soi QC.
+- [ ] **Route ×3 + Loại hàng ×2** (mã M có sẵn: winner-take-all sheet 17, bridge sheet 16, Map_LoaiHinh 26). Cần dán tab **25_UpdateManual** (optional).
+- [ ] **POB** sheet 18 → nhãn `Import/Export='Pay on behalf'` (QĐ-48/50, VND→USD).
+
+## 🔴 Ưu tiên 2d — Phase B: trang Logistics record (sau pipeline)
+- [ ] `report.js` tổng hợp (chuỗi tháng Full/POB/Total · Import theo Loại hàng · Export theo Route · Overhead) + `views.js` bảng phân cấp + 2 bar chart + action `?action=pob`. Chi tiết: `PLAN_LOGISTICS_RECORD.md`.
+- [ ] Viết **SOP đẩy Excel→Sheets** từng bước (Refresh All → copy raw 10–19 → paste values → rebuildFact).
 
 ## 🟠 Ưu tiên 3 — Xác minh & hoàn thiện UI
 - [ ] Mở `index.html` kiểm 4 trang + đổi tháng + dark mode + mobile (768/480).

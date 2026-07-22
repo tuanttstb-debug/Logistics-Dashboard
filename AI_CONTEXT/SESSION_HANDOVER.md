@@ -2,6 +2,39 @@
 
 > Mới nhất trên cùng. Mỗi phiên một block. Chỉ ghi delta của phiên.
 
+## 2026-07-22 (khuya-3) — Chạy thật + fix + plan Logistics record + Phase A port PQ
+
+### ✅ Task completed
+- **Chạy thật rebuildFact** (courier+overhead) + sửa loạt lỗi thực tế: tháng đọc "Cột 1" (named range rác) → validate `YYYY-MM`; tháng thành Date → `monthKey_`; header/data lệch cột → `writeFact_` làm chủ tab; lỗi "cột đã nhập" → **xóa hẳn + tạo tab mới**; staging courier **bỏ dư `INVOICE NO.`** (giữ đúng §6).
+- **Nút Đồng bộ web** `refreshData()` (spinner + toast) thay F5. Deploy Web App lại (giữ link) — nhắc **phải chọn "New version"**.
+- **Research báo cáo "Logistics record"** (`data/Logistics record JUN 2026.xlsx`) + 2 chart (Import/Export) → **plan** `AI_CONTEXT/PLAN_LOGISTICS_RECORD.md` (QĐ-45..50).
+- **Phase A:** trích **toàn bộ 22 query M gốc** từ DataMashup (`data/_source/pq_section1.m`) → viết lại `Transform.gs` theo đúng khuôn PQ (`UnpivotOtherColumns`); thêm **VVMV/Dolphin/EI** staging + tầng chung (USD/Mode chuẩn/Import-Export).
+
+### 📁 Files changed
+- `backend/Transform.gs` (viết lại lớn — 6 staging + tầng chung), `backend/Setup.gs` (00_Config), `backend/Config.gs` (FACT_TAB=40_FACT_CostLines), `backend/DataService.gs`.
+- `assets/js/app.js` (nút Đồng bộ), `assets/css/components.css` (spinner), `index.html`.
+- Mới: `AI_CONTEXT/PLAN_LOGISTICS_RECORD.md`. Sửa: `context/30_DECISIONS_LOG` (QĐ-44..50), DATA_CONTRACT/SYSTEM_ARCHITECTURE/CHANGE_LOG.
+- Ref (gitignored): `data/_source/pq_section1.m`.
+
+### 🧭 Decision
+- **QĐ-45..50** (plan Logistics record): hoàn thiện pipeline trước · chuỗi tháng chỉ hiện tháng thực có · dựng cả 4 khối · POB=sheet 18 (nhãn `Import/Export='Pay on behalf'`) · Customs&Trucking={Customs,Trucking}, Origin/Dest LCC→dòng "Local charges" riêng · POB VND→USD.
+- **Khuôn PQ:** mọi staging = UnpivotOtherColumns(tập định danh); ground truth = mã M gốc (không đoán từ context).
+
+### 🚧 Blocker / lưu ý
+- **Chưa validate** rebuildFact bản đủ 6 nguồn — user cần dán `Transform.gs` mới + chạy, đối chiếu **1.480 dòng/$44.062**.
+- Cần tab `25_UpdateManual` trên Sheets cho Route/Loại hàng (user mới thêm 22/23/24/26; **thiếu 25** → sẽ để optional).
+- 🔴 Nợ bảo mật **TD-11** vẫn nguyên (chưa Private/rewrite history).
+
+### ➡️ Next step
+1. User dán `Transform.gs` mới → `rebuildFact()` → đối chiếu 1.480/$44.062 (VVMV 936/$27.056 · Dolphin 29/$2.195 · EI 37/$2.105 · courier · Overhead).
+2. Khớp → **Route ×3 + Loại hàng ×2** (mã M gốc đã có: winner-take-all sheet 17, bridge sheet 16, Map_LoaiHinh 26, UpdateManual 25 optional).
+3. Rồi **POB** (sheet 18 → nhãn) → **Phase B** trang Logistics record (report.js + views + 2 chart + action `?action=pob`).
+
+### ⚠️ Regression risk
+- `Transform.gs` **viết lại toàn bộ** — đổi từ intersect-Map_Cost sang unpivot-others; totals phải khớp $44.062, nếu lệch nguồn nào xem QC "phí chưa map" (thường do tên cột/tab lệch).
+- `normHdr_` chuẩn hóa header — nếu tab raw có header lệch nhiều (khối ghi chú) vẫn tự dò; nhưng tên cột phải khớp Map_Cost sau chuẩn hóa.
+- Web đọc `40_FACT_CostLines`: mỗi lần chạy rebuildFact xóa+tạo lại tab (mất format thủ công nếu có).
+
 ## 2026-07-22 (khuya-2) — GAS engine dựng fact từ raw (QĐ-44)
 
 ### ✅ Task completed
