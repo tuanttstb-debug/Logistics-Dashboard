@@ -12,9 +12,10 @@
                                │ (đẩy fact_CostLines lên tab Sheets)
                                ▼
 ┌──────────────────────────────────────────────────────────────┐
-│  GOOGLE SHEETS (Database)                                    │
-│  Tab `fact_CostLines`   ← kho dọc, 1 dòng = 1 khoản phí     │
-│  Tab `Map_ExchangeRate` ← tỷ giá tháng (tùy chọn)           │
+│  GOOGLE SHEETS (Database — KHO toàn bộ raw + fact, QĐ-43)   │
+│  11 tab RAW `10_DHL_Raw`…`19_Overhead_Raw` ← raw từng nguồn │
+│  Tab `fact_CostLines`   ← bảng fact A:X, WEB CHỈ ĐỌC tab này│
+│  (Sheets KHÔNG tính toán — Excel vẫn là engine tính fact)   │
 └──────────────────────────────┬───────────────────────────────┘
                                │ SpreadsheetApp API
                                ▼

@@ -2,6 +2,28 @@
 
 > Hợp đồng dữ liệu giữa engine Excel và web. **Nguồn chân lý cột: `context/12_DATA_DICTIONARY.md`.** File này chỉ mô tả cách dữ liệu đó lên Google Sheets và tới web.
 
+## 0. Cấu trúc DB Google Sheets (QĐ-43)
+
+DB trên Google Sheets quản lý **toàn bộ raw data** + bảng fact. **Excel vẫn là engine** (Power Query tính `fact_CostLines`); Sheets là **KHO lưu** raw + fact, **không** tính toán. **Web CHỈ ĐỌC `fact_CostLines`.**
+
+| Tab | Vai trò | Cột | Nguồn (Logistics_System.xlsx) |
+|---|---|---|---|
+| `10_DHL_Raw` | Raw debit DHL (Courier) | 17 | sheet 10 |
+| `11_FedExExp_Raw` | Raw debit FedEx xuất | 16 | sheet 11 |
+| `12_FedExImp_Raw` | Raw debit FedEx nhập | 17 | sheet 12 |
+| `13_EI_Raw` | Raw debit EI/Expeditors (USD) | 40 | sheet 13 |
+| `14_VVMV_Raw` | Raw debit VVMV | 22 | sheet 14 |
+| `15_Dolphin_Raw` | Raw debit Dolphin | 19 | sheet 15 |
+| `16_ExportMgmt_Raw` | Invoice↔B/L (bắc cầu VVMV xuất) | 5 | sheet 16 |
+| `17_CustomsDetail_Raw` | Chi tiết tờ khai (Route/Loại hàng) | 31 | sheet 17 |
+| `18_ImportPOB_Raw` | Import Pay-on-behalf | 7 | sheet 18 |
+| `19_Overhead_Raw` | Chi phí chung (VND) | 4 | sheet 19 |
+| **`fact_CostLines`** | **Bảng fact — WEB ĐỌC TAB NÀY** | 24 (A:X) | sheet 40 |
+
+- Tab raw: **header 1 dòng** (bỏ khối ghi chú/hướng dẫn của file Excel), **tất cả cột để Plain text** để giữ nguyên vẹn mã (Invoice/AWB/B/L/CDS/tờ khai) và ngày.
+- Tạo tự động bằng `backend/Setup.gs` → hàm `setupSheets()`. Idempotent, không xóa data.
+- Đẩy dữ liệu: dán raw từng nguồn vào tab tương ứng; dán `fact_CostLines` A:X (§2). Excel giữ vai trò tính fact.
+
 ## 1. Nguồn: kho `fact_CostLines`
 
 **Nguồn thật (đã đối chiếu 2026-07-22 — QĐ-41):** sheet **`40_FACT_CostLines`** trong `data/Logistics_System.xlsx`, **cột A:X (24 cột), header ở DÒNG 9**, data dòng 10→ (T6/2026: ~1.480 dòng).
