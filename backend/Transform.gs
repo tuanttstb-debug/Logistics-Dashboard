@@ -150,16 +150,33 @@ function loadMaps_(ss) {
   return { cost: cost, rate: rate };
 }
 
+var MONTH_RE = /^\d{4}-\d{2}$/; // YYYY-MM
+
+// Lấy tháng báo cáo. Ưu tiên 00_Config!B1, rồi named range ThangBaoCao.
+// CHỈ nhận giá trị đúng dạng YYYY-MM → giá trị rác (vd named range trỏ ô "Cột 1") bị BỎ QUA.
 function getReportMonth_(ss) {
-  try { var nr = ss.getRangeByName('ThangBaoCao'); if (nr) { var v = str_(nr.getValue()); if (v) return v; } } catch (e) {}
+  var cands = [];
   var cfg = ss.getSheetByName('00_Config');
-  if (cfg) { var v2 = str_(cfg.getRange('B1').getValue()); if (v2) return v2; }
-  // Bootstrap: tạo tab 00_Config để người dùng điền
-  cfg = ss.insertSheet('00_Config');
-  cfg.getRange('A1').setValue('ThangBaoCao');
-  cfg.getRange('B1').setNumberFormat('@').setValue('');
-  cfg.getRange('A2').setValue('(Điền tháng YYYY-MM vào ô B1, ví dụ 2026-06, rồi chạy lại rebuildFact)');
-  throw new Error('Chưa khai báo tháng. Đã tạo tab 00_Config — điền YYYY-MM vào ô B1 rồi chạy lại rebuildFact().');
+  if (cfg) cands.push(['00_Config!B1', cfg.getRange('B1').getValue()]);
+  try { var nr = ss.getRangeByName('ThangBaoCao'); if (nr) cands.push(['named range ThangBaoCao', nr.getValue()]); } catch (e) {}
+
+  var seen = [];
+  for (var i = 0; i < cands.length; i++) {
+    var v = str_(cands[i][1]);
+    if (MONTH_RE.test(v)) return v;
+    if (v) seen.push(cands[i][0] + '="' + v + '"');
+  }
+  if (!cfg) { // bootstrap tab config
+    cfg = ss.insertSheet('00_Config', 0);
+    cfg.getRange('A1').setValue('ThangBaoCao').setFontWeight('bold');
+    cfg.getRange('B1').setNumberFormat('@').setValue('');
+    cfg.getRange('A2').setValue('→ Điền tháng YYYY-MM vào ô B1 (vd 2026-06) rồi chạy lại rebuildFact()');
+    throw new Error('Chưa khai báo tháng. Đã tạo tab 00_Config — điền YYYY-MM vào ô B1 rồi chạy lại.');
+  }
+  throw new Error('Tháng báo cáo không hợp lệ (cần YYYY-MM, vd 2026-06). ' +
+    (seen.length ? 'Đang thấy: ' + seen.join('; ') + '. ' : 'Ô 00_Config!B1 đang trống. ') +
+    'Sửa ô 00_Config!B1 thành 2026-06 rồi chạy lại. ' +
+    '(Nếu có named range ThangBaoCao trỏ ô rác thì xoá ở Data → Named ranges.)');
 }
 
 // ───────────────────────── Sheet I/O ─────────────────────────
