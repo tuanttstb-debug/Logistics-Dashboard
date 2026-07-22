@@ -31,10 +31,12 @@ function rebuildFact() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var month = getReportMonth_(ss);
   var maps = loadMaps_(ss);
-  var rate = maps.rate[month];
+  var rate = maps.rate[monthKey_(month)];
   if (rate == null || !(rate > 0)) {
+    var have = Object.keys(maps.rate);
     throw new Error('Thiếu USD_Rate cho tháng ' + month + ' ở bảng Map_ExchangeRate (23). ' +
-      'Thêm dòng: ' + month + ' | <tỷ giá> → rồi chạy lại.');
+      (have.length ? 'Bảng đang có tháng: ' + have.join(', ') + '. ' : 'Bảng đọc ra RỖNG (kiểm cột Month/USD_Rate + dòng header). ') +
+      'Thêm/sửa dòng: ' + month + ' | <tỷ giá> → rồi chạy lại.');
   }
 
   var fact = [];
@@ -144,7 +146,7 @@ function loadMaps_(ss) {
   var rt = readSheetFirst_(ss, MAP_RATE_TABS, ['Month', 'USD_Rate']);
   if (!rt) throw new Error('Không thấy bảng Map_ExchangeRate (thử: ' + MAP_RATE_TABS.join(', ') + ').');
   rt.rows.forEach(function (r) {
-    var m = str_(r['Month']); var v = num_(r['USD_Rate']);
+    var m = monthKey_(r['Month']); var v = num_(r['USD_Rate']);
     if (m && v) rate[m] = v;
   });
   return { cost: cost, rate: rate };
@@ -235,6 +237,18 @@ function writeFact_(ss, fact) {
 function factRow_(o) { return o; } // giữ nguyên object; writeFact_ map theo FACT_HEADERS
 function key_(f, n) { return str_(f) + '' + str_(n); }
 function str_(v) { return v === null || v === undefined ? '' : String(v).trim(); }
+// Chuẩn hoá tháng về 'YYYY-MM' — chịu được cả Date (Sheets tự đổi "2026-06"→ngày) lẫn chuỗi
+function monthKey_(v) {
+  if (v === null || v === undefined || v === '') return '';
+  if (Object.prototype.toString.call(v) === '[object Date]') {
+    var y = v.getFullYear(), m = v.getMonth() + 1;
+    return y + '-' + (m < 10 ? '0' : '') + m;
+  }
+  var s = String(v).trim();
+  var mm = s.match(/^(\d{4})-(\d{1,2})/);
+  if (mm) return mm[1] + '-' + (mm[2].length < 2 ? '0' + mm[2] : mm[2]);
+  return s;
+}
 function num_(v) {
   if (v === '' || v === null || v === undefined) return null;
   if (typeof v === 'number') return v;
@@ -256,9 +270,26 @@ function report_(month, rate, fact, qc) {
   return msg;
 }
 
+// Chẩn đoán: xem GAS đọc được gì (chạy khi rebuild báo lỗi map/tháng)
+function diagMaps() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var out = [];
+  try { out.push('Tháng báo cáo: ' + getReportMonth_(ss)); } catch (e) { out.push('Tháng: LỖI — ' + e.message); }
+  try {
+    var maps = loadMaps_(ss);
+    var rk = Object.keys(maps.rate);
+    out.push('Map_ExchangeRate: ' + rk.length + ' tháng → ' + rk.map(function (k) { return k + '=' + maps.rate[k]; }).join(', '));
+    out.push('Map_Cost: ' + Object.keys(maps.cost).length + ' dòng phí');
+  } catch (e2) { out.push('loadMaps: LỖI — ' + e2.message); }
+  var msg = out.join('\n');
+  Logger.log(msg);
+  return msg;
+}
+
 // Menu tiện dụng khi mở Sheet
 function onOpen() {
   SpreadsheetApp.getUi().createMenu('Logistics DB')
     .addItem('Rebuild fact (dựng lại từ raw)', 'rebuildFact')
+    .addItem('Chẩn đoán (diag maps)', 'diagMaps')
     .addToUi();
 }
