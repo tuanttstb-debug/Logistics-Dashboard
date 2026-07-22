@@ -1,38 +1,53 @@
-/** Transform.gs — ENGINE dựng 40_FACT_CostLines TỪ các sheet Raw (thay Power Query).
+/** Transform.gs — ENGINE dựng 40_FACT_CostLines TỪ raw (port Power Query, QĐ-44/45).
  *
- * QĐ-44: GAS tự tính fact từ raw 10–19 + bảng map, KHÔNG lấy từ 40_FACT_CostLines dán sẵn.
- * Cơ chế: BATCH — chạy `rebuildFact()` (menu hoặc editor) → GHI ra tab `40_FACT_CostLines`.
- *         Web vẫn CHỈ ĐỌC `40_FACT_CostLines` (nhanh). Đây là "Refresh All" bản GAS.
+ * BÁM ĐÚNG PQ gốc (trích từ Logistics_System.xlsx → data/_source/pq_section1.m):
+ *   Mỗi nguồn: UnpivotOtherColumns(tập định danh) → mỗi cột phí 1 dòng → merge Map_Cost.
+ *   Tầng chung (1 lần): Amount≠0 → USD_Rate → Amount_USD → Mode chuẩn → Import/Export
+ *                        → Route (Export??CDS??BL + UpdateManual) → Loại hàng.  [Route/Loại hàng: bước kế]
  *
- * PHẠM VI v1 (tăng dần — courier trước): DHL, FedEx Export, FedEx Import, Overhead.
- *   → VVMV / Dolphin / EI cắm thêm sau (xem chỗ COURIER_SOURCES + hàm stage*).
- * TRƯỜNG SINH v1 (lõi): Amount_USD · Standard Cost · Mode chuẩn · Import/Export.
- *   → Route / Loại hàng để null ở v1 (bổ sung sau).
- *
- * PHỤ THUỘC (đã dán lên Sheets): 22_Map_Cost, 23_Map_ExchangeRate. Tháng: tab 00_Config B1.
- *
- * Logic nghiệp vụ: context/11_BUSINESS_RULES.md (§1 Map_Cost, §2 USD, §3 Mode, §4 Import/Export). */
+ * Chạy `rebuildFact()` (menu Logistics DB) → GHI 40_FACT_CostLines. Web CHỈ ĐỌC tab đó.
+ * Phụ thuộc Sheets: 10–19 (raw), 22_Map_Cost, 23_Map_ExchangeRate, 00_Config!B1 (tháng).
+ * Logic: context/11_BUSINESS_RULES.md. */
 
 var FACT_HEADERS = ['Month','Forwarder','B/L','INVOICE NO.','CDS NO.','Shipper','Consignee','Origin','Destination','Mode','CW','CBM','Original Cost Name','Amount','Currency','Exchange Rate','USD_Rate','Amount_USD','Standard Cost','FWD Column','Mode chuẩn','Import/Export','Route','Loại hàng'];
-
-// Tên tab map — thử lần lượt (chịu được đặt tên có/không tiền tố số)
 var MAP_COST_TABS = ['22_Map_Cost', 'Map_Cost'];
 var MAP_RATE_TABS = ['23_Map_ExchangeRate', 'Map_ExchangeRate'];
 
-// Nguồn courier (unpivot cột phí). `keep` = bộ cột GIỮ ĐÚNG theo §6 10_MODEL_SPEC
-// (đối chiếu fact Excel): {tên cột FACT : tên cột RAW}. KHÔNG giữ cột ngoài danh sách này.
-// DHL/FedEx §6: B/L(=AWB), Shipper, Consignee, Origin, Destination, CW. KHÔNG có INVOICE NO./CDS/Mode/CBM.
-var COURIER_SOURCES = [
-  { tab: '10_DHL_Raw',      forwarder: 'DHL',
-    keep: { 'B/L': 'AWB', 'Shipper': 'SHIPPER', 'Consignee': 'CONSIGNEE', 'Origin': 'ORIG', 'Destination': 'DEST', 'CW': 'CHRGBL WGHT (KG)' } },
+// Cột định danh sẽ ĐÍNH vào mỗi dòng phí (nếu có mặt sau rename)
+var CARRY = ['B/L','INVOICE NO.','CDS NO.','Shipper','Consignee','Origin','Destination','Mode','CW','CBM','Exchange Rate'];
+var NUM_CARRY = { 'CW': 1, 'CBM': 1, 'Exchange Rate': 1 };
+
+// ── Cấu hình staging từng nguồn (rename: raw→tên chuẩn; identifiers: KHÔNG unpivot) ──
+var STAGES = [
+  { tab: '10_DHL_Raw', forwarder: 'DHL',
+    rename: { 'AWB': 'B/L', 'ORIG': 'Origin', 'DEST': 'Destination', 'CHRGBL WGHT (KG)': 'CW', 'SHIPPER': 'Shipper', 'CONSIGNEE': 'Consignee' },
+    identifiers: ['INVOICE NO','VAT INVOICE NO.','DATE','B/L','SHIP DATE','Shipper','Consignee','Origin','Destination','Zone','CW','FUEL %','TOTAL AMOUNT (VND)'],
+    require: ['SHIPPER', 'AWB'], dropIfTotal: 'INVOICE NO' },
+
   { tab: '11_FedExExp_Raw', forwarder: 'FedEx Export',
-    keep: { 'B/L': 'AWB', 'Shipper': 'SHIPPER', 'Consignee': 'CONSIGNEE', 'Origin': 'ORIG', 'Destination': 'DEST', 'CW': 'CHRGBL WGHT (KG)' } },
+    rename: { 'AWB': 'B/L', 'CHRGBL WGHT (KG)': 'CW', 'ORIG': 'Origin', 'DEST': 'Destination', 'SHIPPER': 'Shipper', 'CONSIGNEE': 'Consignee' },
+    identifiers: ['VAT INVOICE NO.','DEBIT NOTE NO.','DEBIT NOTE DATE','B/L','SHIP DATE','Shipper','Consignee','Origin','Destination','SERV','CW','TOTAL AMOUNT (VND)'],
+    require: ['AWB', 'SHIPPER'] },
+
   { tab: '12_FedExImp_Raw', forwarder: 'FedEx Import',
-    keep: { 'B/L': 'AWB', 'Shipper': 'SHIPPER', 'Consignee': 'CONSIGNEE', 'Origin': 'ORIG', 'Destination': 'DEST', 'CW': 'CHRGBL WGHT (KG)' } },
-  // Bộ cột §6 cho các nguồn sẽ dựng sau (để tham chiếu khi cắm staging):
-  //  VVMV   : B/L, INVOICE NO., CDS NO., Shipper, Destination, Mode, CW, CBM
-  //  Dolphin: B/L, INVOICE NO., CDS NO., Shipper, Mode, CW, CBM
-  //  EI     : B/L, Mode, CW, CBM, Currency, Exchange Rate
+    rename: { 'AWB': 'B/L', 'CHRGBL WGHT (KG)': 'CW', 'ORIG': 'Origin', 'DEST': 'Destination', 'SHIPPER': 'Shipper', 'CONSIGNEE': 'Consignee' },
+    identifiers: ['STT','VAT INVOICE NO.','DEBIT NOTE NO.','DEBIT NOTE DATE','B/L','SHIP DATE','Shipper','Consignee','Origin','Destination','SERV','CW','TOTAL AMOUNT (VND)'],
+    require: ['AWB', 'SHIPPER'] },
+
+  { tab: '15_Dolphin_Raw', forwarder: 'Dolphin',
+    rename: { 'HBL no': 'B/L', 'Shipper/Cnee': 'Shipper', 'Kgs': 'CW', 'Invoice No': 'INVOICE NO.', 'CDS No': 'CDS NO.', 'Cbm': 'CBM' },
+    identifiers: ['B/L','INVOICE NO.','Shipper','AOL/POL','CDS NO.','Date','Mode','CW','CBM'],
+    require: ['HBL no', 'Invoice No'] },
+
+  { tab: '14_VVMV_Raw', forwarder: 'VVMV',
+    rename: { 'HBL No.': 'B/L', 'Invoice No': 'INVOICE NO.', 'Shipper': 'Shipper', "Destination/ Shipper's country": 'Destination', 'Kgs': 'CW', 'Custom No': 'CDS NO.' },
+    identifiers: ['INVOICE NO.','Shipper','Destination','CDS NO.','CD Date','Mode','CW','CBM','Total','Total (Included vAT)','Sub-Total (vnd)','TOTAL AMOUNT','NOTE','B/L'],
+    require: ['Invoice No', 'Kgs'], vvmvBL: true },
+
+  { tab: '13_EI_Raw', forwarder: 'EI',
+    rename: { 'MBL/ HBL': 'B/L', 'type': 'Mode', 'Shipper/Consignee': 'Shipper', 'POL': 'Origin', 'POD': 'Destination', '(CBM)': 'CBM' },
+    identifiers: ['NO.','Expeditors inv','Invoice date','File Ref','B/L','Mode','Shipper','Origin','ETD/COB','Destination','ETA','Ship date','CW','GW','CBM','VAT No.','Date','TOTAL IN USD','Exchange Rate','Total(VND)'],
+    require: ['MBL/ HBL', 'type'], eiCurrency: true },
 ];
 
 // ───────────────────────── Orchestrator ─────────────────────────
@@ -43,225 +58,269 @@ function rebuildFact() {
   var rate = maps.rate[monthKey_(month)];
   if (rate == null || !(rate > 0)) {
     var have = Object.keys(maps.rate);
-    throw new Error('Thiếu USD_Rate cho tháng ' + month + ' ở bảng Map_ExchangeRate (23). ' +
-      (have.length ? 'Bảng đang có tháng: ' + have.join(', ') + '. ' : 'Bảng đọc ra RỖNG (kiểm cột Month/USD_Rate + dòng header). ') +
-      'Thêm/sửa dòng: ' + month + ' | <tỷ giá> → rồi chạy lại.');
+    throw new Error('Thiếu USD_Rate cho tháng ' + month + ' (Map_ExchangeRate 23). ' +
+      (have.length ? 'Đang có: ' + have.join(', ') + '. ' : 'Bảng RỖNG. ') + 'Thêm dòng ' + month + ' | <tỷ giá>.');
   }
 
-  var fact = [];
-  var qc = { unmapped: {}, missingUsd: 0, perSource: {} };
+  var raw = [];  // các dòng phí (chưa qua tầng chung)
+  var qc = { unmapped: {}, perSource: {} };
 
-  COURIER_SOURCES.forEach(function (src) {
-    var n0 = fact.length;
-    stageCourier_(ss, src, month, rate, maps.cost, fact, qc);
-    qc.perSource[src.forwarder] = fact.length - n0;
+  STAGES.forEach(function (st) {
+    var n0 = raw.length;
+    buildStaging_(ss, st, maps.cost, month, raw, qc);
+    qc.perSource[st.forwarder] = raw.length - n0;
   });
-  var nOv = fact.length;
-  stageOverhead_(ss, '19_Overhead_Raw', month, rate, maps.cost, fact, qc);
-  qc.perSource['Overhead'] = fact.length - nOv;
+  var nOv = raw.length;
+  stageOverhead_(ss, '19_Overhead_Raw', maps.cost, month, raw, qc);
+  qc.perSource['Overhead'] = raw.length - nOv;
+
+  // Tầng chung
+  var fact = [];
+  raw.forEach(function (r) {
+    if (num_(r.Amount) === 0 || num_(r.Amount) === null) return; // Amount ≠ 0
+    commonTier_(r, rate);
+    fact.push(r);
+  });
 
   writeFact_(ss, fact);
   return report_(month, rate, fact, qc);
 }
 
-// ───────────────────────── Staging: courier ─────────────────────────
-// DHL / FedEx: unpivot cột phí (∩ Map_Cost) → mỗi khoản 1 dòng; GIỮ ĐÚNG bộ cột src.keep (§6).
-function stageCourier_(ss, src, month, rate, costMap, out, qc) {
-  var blCol = src.keep['B/L'];
-  var t = readSheetObjects_(ss, src.tab, [blCol, src.keep['Destination'] || blCol]);
-  if (!t) return; // tab chưa có → bỏ qua
-  var costCols = t.headers.filter(function (h) { return h && costMap[key_(src.forwarder, h)]; });
+// ───────────────────────── Staging (UnpivotOtherColumns) ─────────────────────────
+function buildStaging_(ss, st, costMap, month, out, qc) {
+  var t = readSheetObjects_(ss, st.tab, st.require || []);
+  if (!t) return;
+  var bridge = st.vvmvBL ? buildExportBridge_(ss) : null;
 
-  t.rows.forEach(function (r) {
-    // Lọc dòng Total/Grand Total của DHL: AWB (B/L) trống là dấu hiệu dòng tổng
-    if (!str_(r[blCol])) return;
+  t.rows.forEach(function (rr) {
+    // rename raw → tên chuẩn
+    var row = {};
+    Object.keys(rr).forEach(function (h) { row[(st.rename && st.rename[h]) || h] = rr[h]; });
 
-    // Chỉ lấy đúng cột trong keep (CW/CBM → số, còn lại → text)
-    var base = {};
-    Object.keys(src.keep).forEach(function (f) {
-      var v = r[src.keep[f]];
-      base[f] = (f === 'CW' || f === 'CBM') ? num_(v) : (str_(v) || null);
+    if (st.dropIfTotal && String(row[st.dropIfTotal] || '').toLowerCase().indexOf('total') >= 0) return;
+    if (st.vvmvBL) row['B/L'] = vvmvBL_(row, bridge);
+
+    // Bộ định danh mang theo
+    var carry = {};
+    CARRY.forEach(function (f) {
+      if (row[f] === undefined) return;
+      carry[f] = NUM_CARRY[f] ? num_(row[f]) : (str_(row[f]) || null);
     });
-    var ie = impExpCourier_(src.forwarder, base['Origin'], base['Destination']);
 
-    costCols.forEach(function (h) {
-      var amt = num_(r[h]);
-      if (amt === null || amt === 0) return; // Amount ≠ 0 (giữ dòng âm)
-      var m = costMap[key_(src.forwarder, h)];
-      if (!m.std) qc.unmapped[key_(src.forwarder, h)] = 1;
-      var row = {
-        Month: month, Forwarder: src.forwarder,
-        'Original Cost Name': h, Amount: amt,
-        USD_Rate: rate, Amount_USD: amt / rate,
-        'Standard Cost': m.std || null, 'FWD Column': m.fwd || null,
-        'Mode chuẩn': 'Courier', 'Import/Export': ie,
+    // Unpivot: mọi cột KHÔNG thuộc identifiers → 1 dòng phí
+    Object.keys(row).forEach(function (k) {
+      if (st.identifiers.indexOf(k) >= 0) return;
+      var amt = num_(row[k]);
+      if (amt === null) return; // PQ unpivot bỏ null
+      var m = costMap[key_(st.forwarder, k)] || { std: null, fwd: null };
+      if (!m.std) qc.unmapped[st.forwarder + ' / ' + k] = 1;
+      var rec = {
+        Month: month, Forwarder: st.forwarder,
+        'Original Cost Name': k, Amount: amt,
+        'Standard Cost': m.std, 'FWD Column': m.fwd,
       };
-      Object.keys(base).forEach(function (f) { row[f] = base[f]; }); // gắn bộ cột keep
-      out.push(factRow_(row));
+      Object.keys(carry).forEach(function (f) { rec[f] = carry[f]; });
+      if (st.eiCurrency) rec.Currency = (k === 'PHÍ CHỨNG TỪ' || k === 'PHÍ LÀM HÀNG') ? 'VND' : 'USD';
+      out.push(rec);
     });
   });
 }
 
-// ───────────────────────── Staging: overhead ─────────────────────────
-// 19_Overhead_Raw đã ở dạng dọc: mỗi dòng = 1 khoản. Chỉ merge Map_Cost + quy USD.
-function stageOverhead_(ss, tab, month, rate, costMap, out, qc) {
+// Overhead (19): đã dạng dọc — mỗi dòng 1 khoản
+function stageOverhead_(ss, tab, costMap, month, out, qc) {
   var t = readSheetObjects_(ss, tab, ['Forwarder', 'Original Cost Name']);
   if (!t) return;
   var amtCol = t.headers.indexOf('Amount (VND)') >= 0 ? 'Amount (VND)' : 'Amount';
   t.rows.forEach(function (r) {
-    var fwd = str_(r['Forwarder']);
-    var name = str_(r['Original Cost Name']);
-    var amt = num_(r[amtCol]);
-    if (!fwd || !name || amt === null || amt === 0) return;
+    var fwd = str_(r['Forwarder']), name = str_(r['Original Cost Name']), amt = num_(r[amtCol]);
+    if (!fwd || !name || amt === null) return;
     var m = costMap[key_(fwd, name)] || { std: null, fwd: null };
-    if (!m.std) qc.unmapped[key_(fwd, name)] = 1;
-    out.push(factRow_({
-      Month: month, Forwarder: fwd, 'B/L': str_(r['B/L']) || null,
-      'Original Cost Name': name, Amount: amt,
-      USD_Rate: rate, Amount_USD: amt / rate,
-      'Standard Cost': m.std || null, 'FWD Column': m.fwd || null,
-      'Import/Export': 'Overhead', // FWD Column = Overhead FWD → Overhead
-    }));
+    if (!m.std) qc.unmapped[fwd + ' / ' + name] = 1;
+    out.push({ Month: month, Forwarder: fwd, 'B/L': str_(r['B/L']) || null,
+      'Original Cost Name': name, Amount: amt, 'Standard Cost': m.std, 'FWD Column': m.fwd });
   });
 }
 
-// ───────────────────────── Business rules ─────────────────────────
-// §4 Import/Export cho courier (Third party trước, rồi theo hãng/tuyến VN)
-function impExpCourier_(fwd, origin, dest) {
-  if ((fwd === 'DHL' || fwd === 'FedEx Export' || fwd === 'FedEx Import') &&
-      origin && dest && origin !== 'VN' && dest !== 'VN') return 'Third party';
-  if (fwd === 'FedEx Export') return 'Export';
-  if (fwd === 'FedEx Import') return 'Import';
-  if (fwd === 'DHL') {
-    if (dest === 'VN') return 'Import';
-    if (origin === 'VN') return 'Export';
+// ───────────────────────── Tầng chung (per dòng) ─────────────────────────
+function commonTier_(r, rate) {
+  r.USD_Rate = rate;
+  // Amount_USD (§2)
+  if (r.Forwarder === 'EI') {
+    r.Amount_USD = (r.Currency === 'USD') ? r.Amount
+      : (r['Exchange Rate'] ? r.Amount / r['Exchange Rate'] : null);
+  } else {
+    r.Amount_USD = r.Amount / rate;
+  }
+  r['Mode chuẩn'] = modeChuan_(r.Forwarder, r.Mode);
+  r['Import/Export'] = impExp_(r);
+  // Route / Loại hàng: bước kế (giữ null)
+  if (r.Route === undefined) r.Route = null;
+  if (r['Loại hàng'] === undefined) r['Loại hàng'] = null;
+}
+
+// Mode chuẩn — khớp chuỗi CHÍNH XÁC như PQ (§3)
+function modeChuan_(fwd, mode) {
+  if (fwd === 'DHL' || fwd === 'FedEx Export' || fwd === 'FedEx Import') return 'Courier';
+  switch (str_(mode)) {
+    case 'AIR': case 'air import': return 'Air';
+    case 'LCL': case 'FCL': return 'Sea';
+    case 'CPN': return 'Courier';
+    case 'TC': return 'Local';
+    default: return null;
+  }
+}
+
+// Import/Export (§4) — thứ tự KHÔNG đổi
+function impExp_(r) {
+  var f = r.Forwarder, o = r.Origin, d = r.Destination;
+  if (r['FWD Column'] === 'Overhead FWD') return 'Overhead';
+  if ((f === 'DHL' || f === 'FedEx Export' || f === 'FedEx Import') && o && d && o !== 'VN' && d !== 'VN') return 'Third party';
+  if (f === 'FedEx Export') return 'Export';
+  if (f === 'FedEx Import') return 'Import';
+  if (f === 'DHL') return (d === 'VN') ? 'Import' : (o === 'VN') ? 'Export' : null;
+  if (f === 'EI') {
+    var lm = str_(r.Mode).toLowerCase();
+    if (lm.indexOf('export') >= 0) return 'Export';
+    if (lm.indexOf('import') >= 0) return 'Import';
+    return null;
+  }
+  if (f === 'VVMV' || f === 'Dolphin') {
+    var cds = str_(r['CDS NO.']);
+    if (!cds) return null;
+    if (cds.charAt(0) === '1') return 'Import';
+    if (cds.charAt(0) === '3') return 'Export';
     return null;
   }
   return null;
+}
+
+// VVMV B/L (§8/§10): Local→CDS; trống→Tracking# theo invoice; còn lại→HBL
+function vvmvBL_(row, bridge) {
+  var hbl = str_(row['B/L']);
+  if (hbl === 'Local') return str_(row['CDS NO.']) || null;
+  if (hbl === '') return bridge[normInv_(row['INVOICE NO.'])] || null;
+  return hbl;
+}
+
+// Bảng cầu invoice→Tracking# từ 16_ExportMgmt_Raw
+function buildExportBridge_(ss) {
+  var t = readSheetObjects_(ss, '16_ExportMgmt_Raw', ['INVOICE NO.', 'Tracking#']);
+  var map = {};
+  if (!t) return map;
+  t.rows.forEach(function (r) {
+    var inv = str_(r['INVOICE NO.']), trk = str_(r['Tracking#']);
+    if (!inv || !trk) return;
+    var k = normInv_(inv);
+    if (map[k] === undefined) map[k] = trk; // distinct: giữ dòng đầu
+  });
+  return map;
+}
+
+// Chuẩn hóa invoice (§11): bỏ UHAN-, cắt đuôi sau '-' cuối
+function normInv_(v) {
+  var s = String(v == null ? '' : v).replace(/UHAN-/g, '');
+  if (s.indexOf('-') >= 0) s = s.substring(0, s.lastIndexOf('-'));
+  return s.trim();
 }
 
 // ───────────────────────── Maps & config ─────────────────────────
 function loadMaps_(ss) {
   var cost = {};
   var ct = readSheetFirst_(ss, MAP_COST_TABS, ['Forwarder', 'Original Cost Name', 'Standard Cost']);
-  if (!ct) throw new Error('Không thấy bảng Map_Cost (thử: ' + MAP_COST_TABS.join(', ') + ').');
+  if (!ct) throw new Error('Không thấy Map_Cost (thử: ' + MAP_COST_TABS.join(', ') + ').');
   ct.rows.forEach(function (r) {
-    var f = str_(r['Forwarder']), n = str_(r['Original Cost Name']);
+    var f = str_(r['Forwarder']), n = normHdr_(r['Original Cost Name']);
     if (!f || !n) return;
     cost[key_(f, n)] = { std: str_(r['Standard Cost']) || null, fwd: str_(r['FWD Column']) || null };
   });
-
   var rate = {};
   var rt = readSheetFirst_(ss, MAP_RATE_TABS, ['Month', 'USD_Rate']);
-  if (!rt) throw new Error('Không thấy bảng Map_ExchangeRate (thử: ' + MAP_RATE_TABS.join(', ') + ').');
-  rt.rows.forEach(function (r) {
-    var m = monthKey_(r['Month']); var v = num_(r['USD_Rate']);
-    if (m && v) rate[m] = v;
-  });
+  if (!rt) throw new Error('Không thấy Map_ExchangeRate (thử: ' + MAP_RATE_TABS.join(', ') + ').');
+  rt.rows.forEach(function (r) { var m = monthKey_(r['Month']), v = num_(r['USD_Rate']); if (m && v) rate[m] = v; });
   return { cost: cost, rate: rate };
 }
 
-var MONTH_RE = /^\d{4}-\d{2}$/; // YYYY-MM
-
-// Lấy tháng báo cáo. Ưu tiên 00_Config!B1, rồi named range ThangBaoCao.
-// CHỈ nhận giá trị đúng dạng YYYY-MM → giá trị rác (vd named range trỏ ô "Cột 1") bị BỎ QUA.
+var MONTH_RE = /^\d{4}-\d{2}$/;
 function getReportMonth_(ss) {
   var cands = [];
   var cfg = ss.getSheetByName('00_Config');
   if (cfg) cands.push(['00_Config!B1', cfg.getRange('B1').getValue()]);
-  try { var nr = ss.getRangeByName('ThangBaoCao'); if (nr) cands.push(['named range ThangBaoCao', nr.getValue()]); } catch (e) {}
-
+  try { var nr = ss.getRangeByName('ThangBaoCao'); if (nr) cands.push(['ThangBaoCao', nr.getValue()]); } catch (e) {}
   var seen = [];
   for (var i = 0; i < cands.length; i++) {
     var v = str_(cands[i][1]);
     if (MONTH_RE.test(v)) return v;
     if (v) seen.push(cands[i][0] + '="' + v + '"');
   }
-  if (!cfg) { // bootstrap tab config
+  if (!cfg) {
     cfg = ss.insertSheet('00_Config', 0);
     cfg.getRange('A1').setValue('ThangBaoCao').setFontWeight('bold');
     cfg.getRange('B1').setNumberFormat('@').setValue('');
     cfg.getRange('A2').setValue('→ Điền tháng YYYY-MM vào ô B1 (vd 2026-06) rồi chạy lại rebuildFact()');
-    throw new Error('Chưa khai báo tháng. Đã tạo tab 00_Config — điền YYYY-MM vào ô B1 rồi chạy lại.');
+    throw new Error('Chưa khai báo tháng. Đã tạo tab 00_Config — điền YYYY-MM vào B1 rồi chạy lại.');
   }
-  throw new Error('Tháng báo cáo không hợp lệ (cần YYYY-MM, vd 2026-06). ' +
-    (seen.length ? 'Đang thấy: ' + seen.join('; ') + '. ' : 'Ô 00_Config!B1 đang trống. ') +
-    'Sửa ô 00_Config!B1 thành 2026-06 rồi chạy lại. ' +
-    '(Nếu có named range ThangBaoCao trỏ ô rác thì xoá ở Data → Named ranges.)');
+  throw new Error('Tháng không hợp lệ (cần YYYY-MM). ' + (seen.length ? 'Đang thấy: ' + seen.join('; ') + '. ' : '00_Config!B1 trống. ') + 'Sửa 00_Config!B1 = 2026-06.');
 }
 
 // ───────────────────────── Sheet I/O ─────────────────────────
-// Đọc 1 tab → {headers, rows:[{header:value}]}, tự dò dòng header theo requiredCols (chịu khối ghi chú).
+function normHdr_(v) { return String(v == null ? '' : v).replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim(); }
+
+// Đọc tab → {headers(chuẩn hóa), rows:[{header:value}]}, tự dò dòng header theo requiredCols
 function readSheetObjects_(ss, tabName, requiredCols) {
   var sh = ss.getSheetByName(tabName);
   if (!sh) return null;
   var vals = sh.getDataRange().getValues();
-  var need = Math.max(2, requiredCols.length - 1);
+  var req = (requiredCols || []).map(normHdr_);
+  var need = Math.max(2, req.length - 1);
   var hr = -1;
   for (var i = 0; i < Math.min(vals.length, 40); i++) {
-    var cells = vals[i].map(function (c) { return str_(c); });
+    var cells = vals[i].map(normHdr_);
     var hit = 0;
-    requiredCols.forEach(function (k) { if (cells.indexOf(k) >= 0) hit++; });
-    if (hit >= Math.min(requiredCols.length, need)) { hr = i; break; }
+    req.forEach(function (k) { if (cells.indexOf(k) >= 0) hit++; });
+    if (req.length === 0 ? cells.filter(function (c) { return c; }).length >= 2 : hit >= Math.min(req.length, need)) { hr = i; break; }
   }
-  if (hr < 0) throw new Error('Không tìm thấy dòng header ở tab "' + tabName + '" (cần cột: ' + requiredCols.join(', ') + ').');
-  var headers = vals[hr].map(function (c) { return str_(c); });
+  if (hr < 0) throw new Error('Không thấy header ở "' + tabName + '" (cần: ' + req.join(', ') + ').');
+  var headers = vals[hr].map(normHdr_);
   var rows = [];
   for (i = hr + 1; i < vals.length; i++) {
     var row = vals[i];
     if (row.every(function (c) { return c === '' || c === null; })) continue;
     var obj = {};
-    for (var j = 0; j < headers.length; j++) if (headers[j]) obj[headers[j]] = row[j];
+    for (var j = 0; j < headers.length; j++) if (headers[j] && obj[headers[j]] === undefined) obj[headers[j]] = row[j];
     rows.push(obj);
   }
   return { headers: headers, rows: rows };
 }
 
 function readSheetFirst_(ss, tabNames, requiredCols) {
-  for (var i = 0; i < tabNames.length; i++) {
-    if (ss.getSheetByName(tabNames[i])) return readSheetObjects_(ss, tabNames[i], requiredCols);
-  }
+  for (var i = 0; i < tabNames.length; i++) if (ss.getSheetByName(tabNames[i])) return readSheetObjects_(ss, tabNames[i], requiredCols);
   return null;
 }
 
 function writeFact_(ss, fact) {
-  // rebuildFact LÀM CHỦ tab này: XÓA HẲN tab cũ rồi tạo mới tinh — tránh header/data lệch,
-  // cột thừa, format ngày, và lỗi "cột đã nhập" (di sản từ bản Excel dán vào) khi set format.
   var name = CONFIG.FACT_TAB;
   var old = ss.getSheetByName(name);
   if (old) ss.deleteSheet(old);
   var sh = ss.insertSheet(name);
-
   sh.getRange(1, 1, 1, FACT_HEADERS.length).setValues([FACT_HEADERS]).setFontWeight('bold');
   sh.setFrozenRows(1);
-  // Cột khóa Plain text → 'Month' không bị ép thành ngày; B/L/INVOICE/CDS giữ nguyên mã
-  try {
-    [1, 3, 4, 5].forEach(function (c) { sh.getRange(1, c, sh.getMaxRows(), 1).setNumberFormat('@'); });
-  } catch (e) { Logger.log('Cảnh báo: không set được Plain text cột khóa — ' + e.message); }
-
+  try { [1, 3, 4, 5].forEach(function (c) { sh.getRange(1, c, sh.getMaxRows(), 1).setNumberFormat('@'); }); }
+  catch (e) { Logger.log('Cảnh báo format: ' + e.message); }
   if (fact.length) {
-    var matrix = fact.map(function (o) {
-      return FACT_HEADERS.map(function (h) { return o[h] === undefined ? null : o[h]; });
-    });
+    var matrix = fact.map(function (o) { return FACT_HEADERS.map(function (h) { return o[h] === undefined ? null : o[h]; }); });
     sh.getRange(2, 1, matrix.length, FACT_HEADERS.length).setValues(matrix);
   }
 }
 
 // ───────────────────────── helpers ─────────────────────────
-function factRow_(o) { return o; } // giữ nguyên object; writeFact_ map theo FACT_HEADERS
-function key_(f, n) { return str_(f) + '' + str_(n); }
+var KEY_SEP = '';
+function key_(f, n) { return str_(f) + KEY_SEP + normHdr_(n); }
 function str_(v) { return v === null || v === undefined ? '' : String(v).trim(); }
-// Chuẩn hoá tháng về 'YYYY-MM' — chịu được cả Date (Sheets tự đổi "2026-06"→ngày) lẫn chuỗi
 function monthKey_(v) {
   if (v === null || v === undefined || v === '') return '';
-  if (Object.prototype.toString.call(v) === '[object Date]') {
-    var y = v.getFullYear(), m = v.getMonth() + 1;
-    return y + '-' + (m < 10 ? '0' : '') + m;
-  }
-  var s = String(v).trim();
-  var mm = s.match(/^(\d{4})-(\d{1,2})/);
-  if (mm) return mm[1] + '-' + (mm[2].length < 2 ? '0' + mm[2] : mm[2]);
-  return s;
+  if (Object.prototype.toString.call(v) === '[object Date]') { var y = v.getFullYear(), mo = v.getMonth() + 1; return y + '-' + (mo < 10 ? '0' : '') + mo; }
+  var s = String(v).trim(), mm = s.match(/^(\d{4})-(\d{1,2})/);
+  return mm ? mm[1] + '-' + (mm[2].length < 2 ? '0' + mm[2] : mm[2]) : s;
 }
 function num_(v) {
   if (v === '' || v === null || v === undefined) return null;
@@ -273,34 +332,22 @@ function num_(v) {
 }
 
 function report_(month, rate, fact, qc) {
-  var totUsd = 0; fact.forEach(function (o) { totUsd += (o['Amount_USD'] || 0); });
-  var lines = ['✅ rebuildFact xong — tháng ' + month + ' (USD_Rate ' + rate + ')',
-    'Tổng: ' + fact.length + ' dòng · $' + Math.round(totUsd * 100) / 100];
-  Object.keys(qc.perSource).forEach(function (f) { lines.push('  · ' + f + ': ' + qc.perSource[f] + ' dòng'); });
+  var tot = 0; fact.forEach(function (o) { tot += (o.Amount_USD || 0); });
+  var lines = ['✅ rebuildFact — tháng ' + month + ' (rate ' + rate + ')', 'Tổng: ' + fact.length + ' dòng · $' + Math.round(tot * 100) / 100];
+  Object.keys(qc.perSource).forEach(function (f) { lines.push('  · ' + f + ': ' + qc.perSource[f]); });
   var un = Object.keys(qc.unmapped);
-  if (un.length) lines.push('⚠️ Phí CHƯA map (' + un.length + '): ' + un.map(function (k) { return k.replace('', ' / '); }).join('; '));
-  var msg = lines.join('\n');
-  Logger.log(msg);
-  return msg;
+  if (un.length) lines.push('⚠️ Phí CHƯA map (' + un.length + '): ' + un.join('; '));
+  var msg = lines.join('\n'); Logger.log(msg); return msg;
 }
 
-// Chẩn đoán: xem GAS đọc được gì (chạy khi rebuild báo lỗi map/tháng)
 function diagMaps() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var out = [];
-  try { out.push('Tháng báo cáo: ' + getReportMonth_(ss)); } catch (e) { out.push('Tháng: LỖI — ' + e.message); }
-  try {
-    var maps = loadMaps_(ss);
-    var rk = Object.keys(maps.rate);
-    out.push('Map_ExchangeRate: ' + rk.length + ' tháng → ' + rk.map(function (k) { return k + '=' + maps.rate[k]; }).join(', '));
-    out.push('Map_Cost: ' + Object.keys(maps.cost).length + ' dòng phí');
-  } catch (e2) { out.push('loadMaps: LỖI — ' + e2.message); }
-  var msg = out.join('\n');
-  Logger.log(msg);
-  return msg;
+  var ss = SpreadsheetApp.getActiveSpreadsheet(), out = [];
+  try { out.push('Tháng: ' + getReportMonth_(ss)); } catch (e) { out.push('Tháng LỖI: ' + e.message); }
+  try { var mp = loadMaps_(ss); out.push('ExchangeRate: ' + Object.keys(mp.rate).map(function (k) { return k + '=' + mp.rate[k]; }).join(', ')); out.push('Map_Cost: ' + Object.keys(mp.cost).length + ' dòng'); }
+  catch (e2) { out.push('loadMaps LỖI: ' + e2.message); }
+  var msg = out.join('\n'); Logger.log(msg); return msg;
 }
 
-// Menu tiện dụng khi mở Sheet
 function onOpen() {
   SpreadsheetApp.getUi().createMenu('Logistics DB')
     .addItem('Rebuild fact (dựng lại từ raw)', 'rebuildFact')
