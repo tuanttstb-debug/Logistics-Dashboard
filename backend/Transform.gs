@@ -19,11 +19,20 @@ var FACT_HEADERS = ['Month','Forwarder','B/L','INVOICE NO.','CDS NO.','Shipper',
 var MAP_COST_TABS = ['22_Map_Cost', 'Map_Cost'];
 var MAP_RATE_TABS = ['23_Map_ExchangeRate', 'Map_ExchangeRate'];
 
-// Nguồn courier (unpivot cột phí). idInvoice/bl/origin/dest/cw = tên cột trên raw.
+// Nguồn courier (unpivot cột phí). `keep` = bộ cột GIỮ ĐÚNG theo §6 10_MODEL_SPEC
+// (đối chiếu fact Excel): {tên cột FACT : tên cột RAW}. KHÔNG giữ cột ngoài danh sách này.
+// DHL/FedEx §6: B/L(=AWB), Shipper, Consignee, Origin, Destination, CW. KHÔNG có INVOICE NO./CDS/Mode/CBM.
 var COURIER_SOURCES = [
-  { tab: '10_DHL_Raw',      forwarder: 'DHL',          idInvoice: 'INVOICE NO',     bl: 'AWB', origin: 'ORIG', dest: 'DEST', cw: 'CHRGBL WGHT (KG)' },
-  { tab: '11_FedExExp_Raw', forwarder: 'FedEx Export', idInvoice: 'VAT INVOICE NO.', bl: 'AWB', origin: 'ORIG', dest: 'DEST', cw: 'CHRGBL WGHT (KG)' },
-  { tab: '12_FedExImp_Raw', forwarder: 'FedEx Import', idInvoice: 'VAT INVOICE NO.', bl: 'AWB', origin: 'ORIG', dest: 'DEST', cw: 'CHRGBL WGHT (KG)' },
+  { tab: '10_DHL_Raw',      forwarder: 'DHL',
+    keep: { 'B/L': 'AWB', 'Shipper': 'SHIPPER', 'Consignee': 'CONSIGNEE', 'Origin': 'ORIG', 'Destination': 'DEST', 'CW': 'CHRGBL WGHT (KG)' } },
+  { tab: '11_FedExExp_Raw', forwarder: 'FedEx Export',
+    keep: { 'B/L': 'AWB', 'Shipper': 'SHIPPER', 'Consignee': 'CONSIGNEE', 'Origin': 'ORIG', 'Destination': 'DEST', 'CW': 'CHRGBL WGHT (KG)' } },
+  { tab: '12_FedExImp_Raw', forwarder: 'FedEx Import',
+    keep: { 'B/L': 'AWB', 'Shipper': 'SHIPPER', 'Consignee': 'CONSIGNEE', 'Origin': 'ORIG', 'Destination': 'DEST', 'CW': 'CHRGBL WGHT (KG)' } },
+  // Bộ cột §6 cho các nguồn sẽ dựng sau (để tham chiếu khi cắm staging):
+  //  VVMV   : B/L, INVOICE NO., CDS NO., Shipper, Destination, Mode, CW, CBM
+  //  Dolphin: B/L, INVOICE NO., CDS NO., Shipper, Mode, CW, CBM
+  //  EI     : B/L, Mode, CW, CBM, Currency, Exchange Rate
 ];
 
 // ───────────────────────── Orchestrator ─────────────────────────
@@ -56,39 +65,39 @@ function rebuildFact() {
 }
 
 // ───────────────────────── Staging: courier ─────────────────────────
-// DHL / FedEx: unpivot các cột phí có trong Map_Cost → mỗi khoản phí 1 dòng fact.
+// DHL / FedEx: unpivot cột phí (∩ Map_Cost) → mỗi khoản 1 dòng; GIỮ ĐÚNG bộ cột src.keep (§6).
 function stageCourier_(ss, src, month, rate, costMap, out, qc) {
-  var t = readSheetObjects_(ss, src.tab, [src.bl, src.origin]);
+  var blCol = src.keep['B/L'];
+  var t = readSheetObjects_(ss, src.tab, [blCol, src.keep['Destination'] || blCol]);
   if (!t) return; // tab chưa có → bỏ qua
-  // Cột phí = header của raw có mặt trong Map_Cost cho forwarder này
   var costCols = t.headers.filter(function (h) { return h && costMap[key_(src.forwarder, h)]; });
 
   t.rows.forEach(function (r) {
-    var bl = str_(r[src.bl]);
-    // Lọc dòng Total/Grand Total: AWB trống là dấu hiệu dòng tổng của DHL
-    if (!bl) return;
-    if (str_(r[src.idInvoice]).toLowerCase().indexOf('total') >= 0) return;
+    // Lọc dòng Total/Grand Total của DHL: AWB (B/L) trống là dấu hiệu dòng tổng
+    if (!str_(r[blCol])) return;
 
-    var origin = str_(r[src.origin]) || null;
-    var dest = str_(r[src.dest]) || null;
-    var ie = impExpCourier_(src.forwarder, origin, dest);
+    // Chỉ lấy đúng cột trong keep (CW/CBM → số, còn lại → text)
+    var base = {};
+    Object.keys(src.keep).forEach(function (f) {
+      var v = r[src.keep[f]];
+      base[f] = (f === 'CW' || f === 'CBM') ? num_(v) : (str_(v) || null);
+    });
+    var ie = impExpCourier_(src.forwarder, base['Origin'], base['Destination']);
 
     costCols.forEach(function (h) {
       var amt = num_(r[h]);
       if (amt === null || amt === 0) return; // Amount ≠ 0 (giữ dòng âm)
       var m = costMap[key_(src.forwarder, h)];
       if (!m.std) qc.unmapped[key_(src.forwarder, h)] = 1;
-      out.push(factRow_({
-        Month: month, Forwarder: src.forwarder, 'B/L': bl,
-        'INVOICE NO.': str_(r[src.idInvoice]) || null,
-        Shipper: str_(r['SHIPPER']) || str_(r['Shipper']) || null,
-        Consignee: str_(r['CONSIGNEE']) || str_(r['Consignee']) || null,
-        Origin: origin, Destination: dest, CW: num_(r[src.cw]),
+      var row = {
+        Month: month, Forwarder: src.forwarder,
         'Original Cost Name': h, Amount: amt,
         USD_Rate: rate, Amount_USD: amt / rate,
         'Standard Cost': m.std || null, 'FWD Column': m.fwd || null,
         'Mode chuẩn': 'Courier', 'Import/Export': ie,
-      }));
+      };
+      Object.keys(base).forEach(function (f) { row[f] = base[f]; }); // gắn bộ cột keep
+      out.push(factRow_(row));
     });
   });
 }
