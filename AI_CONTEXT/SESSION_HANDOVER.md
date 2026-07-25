@@ -2,6 +2,20 @@
 
 > Mới nhất trên cùng. Mỗi phiên một block. Chỉ ghi delta của phiên.
 
+## 2026-07-25 (handover-2) — Fix setupSheets "cột đã nhập" + DEPLOY LIVE + xác minh endpoint thật
+
+- **✅ Task completed:**
+  - Root-fix `Setup.gs::ensureTab_` — **chỉ** ép Plain text khi tab **vừa tạo/rỗng**; tab đã có data (đã dán / đã chuyển thành Google Sheets **Table** / có column type) → **bỏ qua** `setNumberFormat` nên hết lỗi *"Bạn không thể đặt định dạng số của các ô trong một cột đã nhập."* User xác nhận **`setupSheets` PASS**. (Chẩn đoán: stack trỏ `Setup.gs:82` = dòng bản CŨ → user chạy bản cũ; đã dán bản mới.)
+  - **User đã chạy `rebuildFact()` + Deploy New version (link giữ nguyên).** GAS live = **v0.3.0**.
+  - **Xác minh endpoint thật (curl):** `?action=ping`→v0.3.0 ✅ · `?action=meta`→`rowCount 1454 · totalUsd $43.322,6 (Full) · pobUsd 0 · routes=[AGIGA,AIC,EFI,FORD,LUCID,MRO,OEM,Other,PURE]` (⇒ **Route ×3 chạy đúng trên data thật**) · `?action=pob`→`{ok, count:0}` (endpoint sống; **sheet 18 rỗng** nên chưa có POB).
+- **📁 Files changed:** `backend/Setup.gs` (commit `d65e068`); docs handover.
+- **🧭 Decision:** `setupSheets` idempotent an toàn với tab đã có data / Table — **không (re)định dạng** cột đã có dữ liệu (`rebuildFact` tự set text cột khóa A/C/D/E của fact).
+- **🚧 Blocker / cần đối chiếu:**
+  - ⚠️ **Tổng lệch baseline:** live **1454 dòng/$43.322,6** vs Excel target **1480/$44.062** (~−1,7% tiền, −26 dòng). Nghi vấn: **tỷ giá Sheets = 26452** (nếu Excel dùng rate thấp hơn → USD cao hơn, khớp gần hết phần $); −26 dòng có thể do **raw data hiện tại ≠ snapshot Excel**. **User cần đối chiếu** per-source (log rebuildFact) + rate 23_Map_ExchangeRate.
+  - **POB chưa có dữ liệu:** sheet `18_ImportPOB_Raw` rỗng → dán data POB rồi chạy lại `rebuildFact` mới thấy dòng Pay-on-behalf + POB detail trên web.
+- **➡️ Next step:** (1) đối chiếu 1454/$43.322,6: xem log per-source + rate 26452; (2) dán data POB sheet 18 → rebuildFact; (3) mở web (dữ liệu thật) kiểm trang Logistics record + POB detail.
+- **⚠️ Regression risk:** tab đã có data KHÔNG được (re)ép Plain text → mã dài (B/L, CDS) có thể hiện scientific nếu cột chưa set Plain text (cosmetic; fact tự set). Muốn ép tab raw: **Table → Convert to range** rồi Format → Số → Văn bản thuần.
+
 ## 2026-07-25 (handover) — Sửa getMeta Full/POB + ghi TECH_DEBT
 
 > Delta nhỏ sau block chính cùng ngày (Phase A+B đã push `993bb6f`).
