@@ -92,13 +92,20 @@ function ensureTab_(ss, spec) {
     ? range_(1, spec.headers.length)
     : spec.textCols;
   var maxRows = sh.getMaxRows();
+  // ⚠️ setNumberFormat NÉM lỗi trên cột có "column type" (cột đã nhập / smart-chip):
+  //   "Bạn không thể đặt định dạng số của các ô trong một cột đã nhập."
+  //   → try/catch TỪNG cột: bỏ qua cột lỗi, các cột còn lại vẫn được ép Plain text.
+  var fmtFail = [];
   cols.forEach(function (c) {
-    if (c <= sh.getMaxColumns()) sh.getRange(1, c, maxRows, 1).setNumberFormat('@');
+    if (c > sh.getMaxColumns()) return;
+    try { sh.getRange(1, c, maxRows, 1).setNumberFormat('@'); }
+    catch (e) { fmtFail.push(c); }
   });
 
   return (created ? '✅ TẠO' : 'ℹ️ CÓ') + ' "' + spec.name + '"' +
     (wroteHeader ? ' + ' + spec.headers.length + ' header' : ' (giữ ' + lastRow + ' dòng)') +
-    (spec.textCols === null ? ' · text toàn cột' : ' · text cột khóa');
+    (spec.textCols === null ? ' · text toàn cột' : ' · text cột khóa') +
+    (fmtFail.length ? ' · ⚠️ ' + fmtFail.length + ' cột "đã nhập" bỏ qua Plain text (cột ' + fmtFail.join(',') + ')' : '');
 }
 
 function range_(a, b) { var o = []; for (var i = a; i <= b; i++) o.push(i); return o; }

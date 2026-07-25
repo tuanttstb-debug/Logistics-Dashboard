@@ -145,6 +145,11 @@ ok('POB: Amount_USD=10000 (VND/25000)', pob && approx(pob.Amount_USD, 10000), po
 ok('POB: Route=PURE (từ sheet 18)', pob && pob.Route === 'PURE', pob && pob.Route);
 ok('report tách Full=5 dòng', /Full \(không POB\): 5 dòng/.test(report), report.split('\n')[1]);
 ok('report tách POB=1 dòng', /POB: 1 dòng/.test(report), report.split('\n')[2]);
+// getMeta: totalUsd = Full (loại POB), pobUsd tách riêng (QĐ-51)
+const meta = beCtx.getMeta();
+ok('getMeta.totalUsd = Full (loại POB) = 282', approx(meta.totalUsd, 282), meta.totalUsd);
+ok('getMeta.pobUsd = 10000', approx(meta.pobUsd, 10000), meta.pobUsd);
+ok('getMeta.grandTotalUsd = Full+POB = 10282', approx(meta.grandTotalUsd, 10282), meta.grandTotalUsd);
 line('  ── report ──\n' + report.split('\n').map(s => '     ' + s).join('\n'));
 
 // ───────────────────────── TEST 2: unit — winner-take-all & chuẩn hóa Route ─────────────────────────

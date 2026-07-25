@@ -8,14 +8,19 @@ function getFacts(month) {
 
 function getMeta() {
   var rows = readTabAsObjects(CONFIG.FACT_TAB);
-  // QC: đếm dòng thiếu Amount_USD (ASSUMPTION-W04) — 1 dòng ở T6/2026
-  var missingUsd = 0, total = 0;
+  // QC: đếm dòng thiếu Amount_USD (ASSUMPTION-W04).
+  // totalUsd = FULL (loại POB) để đối chiếu baseline $44.062 (QĐ-51); pobUsd tách riêng.
+  var missingUsd = 0, full = 0, pob = 0, fullCount = 0, pobCount = 0;
   rows.forEach(function (r) {
-    var v = r[CONFIG.COL_MONEY];
+    var v = r[CONFIG.COL_MONEY], isPob = String(r[CONFIG.COL_IE]) === 'Pay on behalf';
+    var n = null;
     if (v === '' || v === null || v === undefined) missingUsd++;
-    else if (typeof v === 'number') total += v;
-    else if (!isNaN(parseFloat(v))) total += parseFloat(v);
+    else if (typeof v === 'number') n = v;
+    else if (!isNaN(parseFloat(v))) n = parseFloat(v);
+    if (isPob) { pobCount++; if (n !== null) pob += n; }
+    else { fullCount++; if (n !== null) full += n; }
   });
+  var r2 = function (x) { return Math.round(x * 100) / 100; };
   return {
     ok: true,
     rowCount: rows.length,
@@ -24,7 +29,10 @@ function getMeta() {
     routes: uniqueValues(rows, CONFIG.COL_ROUTE),
     impExp: uniqueValues(rows, CONFIG.COL_IE),
     missingUsd: missingUsd,
-    totalUsd: Math.round(total * 100) / 100,
+    totalUsd: r2(full),          // Full logistics (loại POB) — dùng đối chiếu $44.062
+    pobUsd: r2(pob),             // Pay on behalf tách riêng (QĐ-51)
+    grandTotalUsd: r2(full + pob), // Full + POB (bằng tổng mọi dòng fact)
+    fullCount: fullCount, pobCount: pobCount,
   };
 }
 

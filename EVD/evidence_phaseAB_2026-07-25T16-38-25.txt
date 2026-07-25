@@ -1,5 +1,5 @@
 EVIDENCE — Logistics Dashboard Phase A+B
-Ngày: 2026-07-25T03:12:17.349Z
+Ngày: 2026-07-25T16:38:25.467Z
 Node: v24.16.0
 Phạm vi: Route ×3, Loại hàng ×2, POB (Transform.gs) + report.js lr* (Phase B)
 ════════════════════════════════════════════
@@ -21,6 +21,9 @@ Phạm vi: Route ×3, Loại hàng ×2, POB (Transform.gs) + report.js lr* (Phas
   ✅ POB: Route=PURE (từ sheet 18)
   ✅ report tách Full=5 dòng
   ✅ report tách POB=1 dòng
+  ✅ getMeta.totalUsd = Full (loại POB) = 282
+  ✅ getMeta.pobUsd = 10000
+  ✅ getMeta.grandTotalUsd = Full+POB = 10282
   ── report ──
      ✅ rebuildFact — tháng 2026-06 (rate 25000)
      Full (không POB): 5 dòng · $282
@@ -73,4 +76,4 @@ Phạm vi: Route ×3, Loại hàng ×2, POB (Transform.gs) + report.js lr* (Phas
   ✅ pobTable render dòng POB
 
 ══════════════════════════════════════════
-KẾT QUẢ: 46 PASS · 0 FAIL
+KẾT QUẢ: 49 PASS · 0 FAIL

@@ -27,7 +27,9 @@
 ## 🔴 Ưu tiên 2c — Phase A: port PQ đủ 6 nguồn + Route/Loại hàng/POB (XONG code)
 - [x] Trích 22 query M gốc. Viết lại `Transform.gs` theo khuôn `UnpivotOtherColumns`; thêm VVMV/Dolphin/EI.
 - [x] **Route ×3 + Loại hàng ×2 + UpdateManual + POB** trong `Transform.gs` (2026-07-25). Test 46/46 PASS (`test/run_tests.cjs`, EVD).
-- [ ] **Người dùng:** dán `backend/*.gs` mới → `rebuildFact()` → đối chiếu **Full ≈ $44.062** (VVMV 936/$27.056 · Dolphin 29/$2.195 · EI 37/$2.105 · DHL 23/$1.398 · FedExExp 25/$585 · FedExImp 429/$9.891 · Overhead 4/$1.066) + dòng **POB** riêng; kiểm log "Route/Loại hàng có giá trị" > 0. Lệch → soi QC.
+- [x] Sửa `Setup.gs` chịu lỗi **"cột đã nhập"** (setNumberFormat try/catch từng cột — 1 cột có column-type không còn abort cả `setupSheets`).
+- [ ] **Người dùng:** (nếu chạy `setupSheets`) cột "đã nhập" bị bỏ qua Plain text là **cosmetic** — muốn ép: chọn cột → xóa column-type (dropdown đầu cột) → Format → Số → Văn bản thuần.
+- [ ] **Người dùng:** dán `backend/*.gs` mới → `rebuildFact()` → đối chiếu **Full ≈ $44.062** (hoặc `?action=meta` `totalUsd`≈44.062 + `pobUsd` riêng) (VVMV 936/$27.056 · Dolphin 29/$2.195 · EI 37/$2.105 · DHL 23/$1.398 · FedExExp 25/$585 · FedExImp 429/$9.891 · Overhead 4/$1.066) + dòng **POB** riêng; kiểm log "Route/Loại hàng có giá trị" > 0. Lệch → soi QC.
 
 ## 🟢 Ưu tiên 2d — Phase B: trang Logistics record (XONG code)
 - [x] `report.js` (`lrMonthlySeries/lrImport/lrExport/lrOverhead`, khử trùng CW/B-L/CDS) + `views.js` bảng phân cấp + `pobTable` + `app.js` 2 bar chart + `?action=pob` (`getPOB`). **QĐ-51** lọc POB khỏi 3 trang Full. Xác minh trình duyệt (EVD).

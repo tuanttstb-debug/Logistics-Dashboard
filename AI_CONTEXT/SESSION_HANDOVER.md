@@ -2,6 +2,17 @@
 
 > Mới nhất trên cùng. Mỗi phiên một block. Chỉ ghi delta của phiên.
 
+## 2026-07-25 (handover) — Sửa getMeta Full/POB + ghi TECH_DEBT
+
+> Delta nhỏ sau block chính cùng ngày (Phase A+B đã push `993bb6f`).
+
+- **✅ Task completed:** `getMeta()` tách **`totalUsd` = Full (loại POB)** để đối chiếu baseline **$44.062**, thêm `pobUsd` + `grandTotalUsd` + `fullCount`/`pobCount` (QĐ-51 nay áp cả tầng meta, không chỉ report.js). Cập nhật `TECH_DEBT.md` (resolve TD-03/TD-14; thêm TD-17..TD-20). Test **49/49 PASS** (thêm 3 assert getMeta). EVD regen.
+- **📁 Files changed:** `backend/DataService.gs` (getMeta), `test/run_tests.cjs` (+3 assert), `AI_CONTEXT/TECH_DEBT.md`, EVD/*.
+- **🧭 Decision:** QĐ-51 mở rộng — mọi API/lớp trả "tổng Full" đều **loại `Pay on behalf`**; POB luôn là field tách.
+- **🚧 Blocker:** vẫn chờ user dán GS mới + `rebuildFact()` + **Deploy New version** (TD-19). `?action=meta` bản cũ trả `totalUsd`=all; bản mới trả Full — nhắc user đối chiếu bằng **bản đã deploy lại**.
+- **➡️ Next step:** như block chính — chạy thật rebuildFact (đối chiếu `meta.totalUsd`≈$44.062 + `meta.pobUsd`), deploy, so bố cục với Excel.
+- **⚠️ Regression risk:** đổi **ngữ nghĩa `getMeta.totalUsd`** (all → Full). Frontend không hiển thị field này trong report (chỉ dùng months/forwarders/routes cho dropdown), nên an toàn; nhưng ai từng curl `?action=meta` so tổng cần biết nay là Full (POB ở `pobUsd`).
+
 ## 2026-07-25 — Phase A hoàn chỉnh (Route/Loại hàng/POB) + Phase B trang Logistics record
 
 ### ✅ Task completed
