@@ -45,11 +45,40 @@
     ['2026-06','VVMV','Overhead',null,'Customs administration fee','Overhead FWD',null,310],
     ['2026-06','VVMV','Overhead',null,'Settlement report fee','Overhead FWD',null,120],
   ];
+  // Loại hàng mẫu theo Route (chỉ hàng nhập) — để trang Logistics record có số
+  var LH_BY_ROUTE = { PURE: 'Material', EFI: 'Equipment & Toolings', AGIGA: 'Material' };
   window.MOCK_ROWS = T.map(function (r, i) {
     var o = {};
     o[C.MONTH] = r[0]; o[C.FORWARDER] = r[1]; o[C.IMP_EXP] = r[2]; o[C.MODE_STD] = r[3];
     o[C.STANDARD_COST] = r[4]; o[C.FWD_COLUMN] = r[5]; o[C.ROUTE] = r[6]; o[C.AMOUNT_USD] = r[7];
-    o[C.BL] = 'MOCK-BL-' + (1000 + i);
+    // B/L theo LÔ (Forwarder+Route+tháng) để khử trùng trọng lượng/số lô đúng
+    o[C.BL] = 'MOCK-' + r[1].replace(/\s/g, '') + '-' + r[6] + '-' + r[0];
+    o[C.CW] = (o[C.IMP_EXP] === 'Import') ? 120 : (o[C.IMP_EXP] === 'Export' ? 80 : 0);
+    if (o[C.IMP_EXP] === 'Import') {
+      o[C.LOAI_HANG] = LH_BY_ROUTE[r[6]] || null;
+      if (r[1] === 'VVMV' || r[1] === 'Dolphin') o[C.CDS] = '1' + r[6] + r[0].slice(5);
+    }
     return o;
   });
+
+  // Vài dòng Pay-on-behalf (nhãn riêng, KHÔNG vào Full cost) — QĐ-48
+  window.MOCK_ROWS.push(
+    mk('2026-06', 'POB', 'Pay on behalf', 'Pay on behalf', 'PURE', 4200, 'MOCK-POB-1'),
+    mk('2026-06', 'POB', 'Pay on behalf', 'Pay on behalf', 'EFI', 1850, 'MOCK-POB-2')
+  );
+  function mk(month, fwd, ie, sc, route, usd, bl) {
+    var o = {};
+    o[C.MONTH] = month; o[C.FORWARDER] = fwd; o[C.IMP_EXP] = ie;
+    o[C.STANDARD_COST] = sc; o[C.ROUTE] = route; o[C.AMOUNT_USD] = usd; o[C.BL] = bl;
+    o[C.MODE_STD] = null; o[C.FWD_COLUMN] = null; o[C.CW] = 0;
+    return o;
+  }
+
+  // Chi tiết POB cho bảng (mock cho ?action=pob)
+  window.MOCK_POB = [
+    { 'B/L': 'MOCK-POB-1', 'INVOICE NO.': 'INV-POB-01', 'Shipper/Consignee': 'Đối tác A',
+      Amount: 105000000, Amount_USD: 4200, Route: 'PURE', 'Quote customer': 4600, Remark: 'Ứng hộ, đã thu' },
+    { 'B/L': 'MOCK-POB-2', 'INVOICE NO.': 'INV-POB-02', 'Shipper/Consignee': 'Đối tác B',
+      Amount: 46250000, Amount_USD: 1850, Route: 'EFI', 'Quote customer': 2000, Remark: 'Chờ thu' },
+  ];
 })();

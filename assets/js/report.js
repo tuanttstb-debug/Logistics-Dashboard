@@ -44,7 +44,7 @@
 
   // ---- BÁO CÁO THEO FORWARDER ----
   function forwarderReport(month) {
-    var all = window.Store.raw();
+    var all = window.Store.raw().filter(nonPOB);
     var fwdOrder = window.FORWARDERS.slice();
     // thêm forwarder lạ (nếu có) vào cuối
     all.forEach(function (r) { if (fwdOrder.indexOf(r[C.FORWARDER]) === -1 && r[C.FORWARDER]) fwdOrder.push(r[C.FORWARDER]); });
@@ -77,9 +77,13 @@
     return out;
   }
 
+  // POB (Pay on behalf) là nhãn RIÊNG — KHÔNG tính vào Full logistics cost của
+  // dashboard/forwarder/route (QĐ-51). Trang "Logistics record" mới hiện Full/POB/Total riêng.
+  function nonPOB(r) { return r[C.IMP_EXP] !== 'Pay on behalf'; }
+
   // ---- BÁO CÁO THEO ROUTE (QĐ-38) ----
   function routeReport(month) {
-    var all = window.Store.raw();
+    var all = window.Store.raw().filter(nonPOB);
     var byRoute = {};
     all.forEach(function (r) {
       var route = r[C.ROUTE];
@@ -103,7 +107,7 @@
 
   // ---- SỐ LIỆU DASHBOARD ----
   function dashboard(month) {
-    var all = window.Store.raw();
+    var all = window.Store.raw().filter(nonPOB);
     var total = triplet(all, month);
     var byIE = {};
     BLOCKS.forEach(function (bk) {
@@ -141,6 +145,103 @@
     return (cur - prev) / Math.abs(prev) * 100;
   }
 
+  // ═══════════════════ LOGISTICS RECORD (Phase B, PLAN_LOGISTICS_RECORD) ═══════════════════
+  // Bám cấu trúc báo cáo CEO Excel. Số do fact ta sinh (sẽ lệch bản tay — chấp nhận).
+
+  // Chỉ tiêu 1 nhóm dòng. LƯU Ý: CW/B-L/CDS lặp trên MỌI dòng phí của cùng lô
+  // (unpivot) → trọng lượng & số lô/tờ khai phải KHỬ TRÙNG theo B/L, CDS (QĐ-49).
+  function lrMetrics(rows) {
+    var freight = 0, ct = 0, lcc = 0, total = 0, blCW = {}, cds = {};
+    rows.forEach(function (r) {
+      var amt = Number(r[C.AMOUNT_USD]) || 0; total += amt;
+      var sc = r[C.STANDARD_COST] || '';
+      if (sc === 'Freight') freight += amt;
+      else if (sc === 'Customs' || sc === 'Trucking') ct += amt;
+      else if (sc === 'Origin LCC' || sc === 'Dest LCC') lcc += amt;
+      var bl = r[C.BL]; if (bl && blCW[bl] === undefined) blCW[bl] = Number(r[C.CW]) || 0;
+      var cd = r[C.CDS]; if (cd) cds[cd] = 1;
+    });
+    var weight = 0; Object.keys(blCW).forEach(function (k) { weight += blCW[k]; });
+    return { freight: freight, customsTrucking: ct, lcc: lcc, subtotal: total,
+      weight: weight, shipments: Object.keys(blCW).length, declarations: Object.keys(cds).length };
+  }
+
+  // Full / POB / Total theo tháng (nhãn Pay on behalf)
+  function lrMonthlySeries() {
+    var by = {};
+    window.Store.raw().forEach(function (r) {
+      var m = r[C.MONTH]; if (!m) return;
+      var o = by[m] || (by[m] = { full: 0, pob: 0 });
+      var v = Number(r[C.AMOUNT_USD]) || 0;
+      if (r[C.IMP_EXP] === 'Pay on behalf') o.pob += v; else o.full += v;
+    });
+    return Object.keys(by).sort().map(function (m) {
+      return { month: m, full: by[m].full, pob: by[m].pob, total: by[m].full + by[m].pob };
+    });
+  }
+
+  var IMPORT_BUCKETS = ['Raw materials', 'Equipment', 'Other'];
+  function importBucket(r) {
+    var lh = r[C.LOAI_HANG];
+    if (lh === 'Material') return 'Raw materials';
+    if (lh === 'Equipment & Toolings') return 'Equipment';
+    return 'Other';
+  }
+
+  // Import: theo tháng × {Raw materials, Equipment, Other} + Subtotal Import/tháng
+  function lrImport() {
+    var months = allMonths();
+    var imp = window.Store.raw().filter(function (r) { return r[C.IMP_EXP] === 'Import'; });
+    var data = {}, subtotal = {};
+    months.forEach(function (m) {
+      var monthRows = imp.filter(function (r) { return r[C.MONTH] === m; });
+      data[m] = {};
+      IMPORT_BUCKETS.forEach(function (b) {
+        data[m][b] = lrMetrics(monthRows.filter(function (r) { return importBucket(r) === b; }));
+      });
+      subtotal[m] = lrMetrics(monthRows);
+    });
+    return { months: months, buckets: IMPORT_BUCKETS, data: data, subtotal: subtotal };
+  }
+
+  // Export: theo tháng × dự án (Route) + Subtotal Export/tháng
+  function lrExport() {
+    var months = allMonths();
+    var exp = window.Store.raw().filter(function (r) { return r[C.IMP_EXP] === 'Export'; });
+    var projSet = {};
+    exp.forEach(function (r) { projSet[r[C.ROUTE] || '(không dự án)'] = 1; });
+    var projects = Object.keys(projSet).sort();
+    var data = {}, subtotal = {};
+    months.forEach(function (m) {
+      var monthRows = exp.filter(function (r) { return r[C.MONTH] === m; });
+      data[m] = {};
+      projects.forEach(function (p) {
+        data[m][p] = lrMetrics(monthRows.filter(function (r) { return (r[C.ROUTE] || '(không dự án)') === p; }));
+      });
+      subtotal[m] = lrMetrics(monthRows);
+    });
+    return { months: months, projects: projects, data: data, subtotal: subtotal };
+  }
+
+  // Overhead: Customs fees in Month / Others (theo Standard Cost)
+  function lrOverhead() {
+    var months = allMonths();
+    var ov = window.Store.raw().filter(function (r) { return r[C.IMP_EXP] === 'Overhead'; });
+    var labelSet = {};
+    ov.forEach(function (r) { labelSet[r[C.STANDARD_COST] || '(khác)'] = 1; });
+    var labels = Object.keys(labelSet).sort();
+    var data = {}, total = {};
+    months.forEach(function (m) {
+      data[m] = {}; var t = 0;
+      labels.forEach(function (l) {
+        var s = sum(ov.filter(function (r) { return r[C.MONTH] === m && (r[C.STANDARD_COST] || '(khác)') === l; }));
+        data[m][l] = s; t += s;
+      });
+      total[m] = t;
+    });
+    return { months: months, labels: labels, data: data, total: total };
+  }
+
   window.Report = {
     forwarderReport: forwarderReport,
     routeReport: routeReport,
@@ -148,5 +249,10 @@
     allMonths: allMonths,
     prevMonth: prevMonth,
     pct: pct,
+    // Logistics record
+    lrMonthlySeries: lrMonthlySeries,
+    lrImport: lrImport,
+    lrExport: lrExport,
+    lrOverhead: lrOverhead,
   };
 })();

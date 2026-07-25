@@ -2,6 +2,33 @@
 
 > Mới nhất trên cùng. Mỗi phiên một block. Chỉ ghi delta của phiên.
 
+## 2026-07-25 — Phase A hoàn chỉnh (Route/Loại hàng/POB) + Phase B trang Logistics record
+
+### ✅ Task completed
+- **Phase A** (`backend/Transform.gs`): thêm **Route ×3** (`buildRouteExport_` sheet 16 khóa B/L=Tracking#; `buildRouteWTA_` winner-take-all sheet 17 theo CDS & BL, hòa→Trị giá NT; ưu tiên UpdateManual→Export→CDS→BL→Third party 'Other'→null), **Loại hàng ×2** (`loadMapLoaiHinh_` 26 + `buildLoaiHang_` sheet 17, xung đột→null, chỉ hàng nhập), **UpdateManual** (`buildUpdateManual_`, tab 25 optional), **POB** (`stagePOB_` sheet 18 → nhãn `Pay on behalf`, VND→USD tỷ giá tháng). `commonTier_(r,rate,dims)` gắn Route/Loại hàng. `report_` tách **Full vs POB** (giữ verify $44.062).
+- **Phase B web:** `report.js` (`lrMonthlySeries/lrImport/lrExport/lrOverhead` — **khử trùng** CW/B-L/CDS theo lô; QĐ-51 lọc POB khỏi dashboard/forwarder/route); `views.js` (`logisticsRecord` bảng phân cấp tháng-cột + `pobTable`); `app.js` (nav `logistics-record` + 2 bar chart + `loadPOB`); `index.html` nav; `api.js`/`routes.js` `pob()`; `Code.gs`/`DataService.gs` `?action=pob` (`getPOB` đọc 18 lấy quote-customer/remark).
+- **Test:** `test/run_tests.cjs` (Node + Spreadsheet giả) — **46/46 PASS**: rebuildFact end-to-end (Route=PURE winner-take-all, Loại hàng=Material, Third party→Other, Overhead→null, POB $=VND/rate, report tách Full/POB), unit (normRoute_/reduceWTA_ tie-break/routeFor_ ưu tiên), report.js lr* (weight khử trùng 120≠240, POB tách khỏi Full), views render. **Xác minh trình duyệt** bằng `EVD/preview_live.html` (mock): 4+1 trang render, chart OK, POB detail 2 dòng, Dashboard total = Full ($17.510, loại POB).
+- **EVD:** `evidence_phaseAB_*.txt`, `fact_sample_*.json`, `preview_live.html`, `preview_logistics_record.html`, `screenshot_logistics_record.jpg`.
+
+### 🧭 Decision
+- **QĐ-51:** POB vào fact (nhãn `Pay on behalf`) nhưng **KHÔNG** tính vào Full logistics của Dashboard/Báo cáo CEO/Route (3 trang lọc bỏ) — giữ baseline $44.062; trang Logistics record hiện Full/POB/Total riêng (§12c).
+- Ground truth Route/Loại hàng/POB = `context/11_BUSINESS_RULES.md` §6/§7/§9 + header raw thật trong `backend/Setup.gs` (16/17/18/26).
+
+### 🚧 Blocker / lưu ý
+- **Người dùng phải:** dán `backend/*.gs` mới vào Apps Script → chạy `rebuildFact()` → đối chiếu log **Full ≈ $44.062** + dòng POB; kiểm "Route/Loại hàng có giá trị" > 0. **Deploy → New version** để `?action=pob` sống (nếu không, POB detail trên web báo lỗi tải).
+- Tab **25_UpdateManual** vẫn optional (chưa có → bỏ qua an toàn). Sheet 18 cần có dữ liệu POB thì mới ra dòng.
+- 🔴 Nợ bảo mật **TD-11** vẫn nguyên.
+
+### ➡️ Next step
+1. Người dùng chạy `rebuildFact()` bản mới + deploy New version → đối chiếu Full/POB + Route/Loại hàng.
+2. So bố cục trang **Logistics record** với ảnh báo cáo Excel thật; chỉnh nhãn/thứ tự dự án nếu cần.
+3. (Tùy) tinh chỉnh chart nhiều tháng, làm tròn USD.
+
+### ⚠️ Regression risk
+- `commonTier_` đổi chữ ký (thêm `dims`) — chỉ gọi từ `rebuildFact`; đã test.
+- `report.js` dashboard/forwarder/route nay **lọc POB** — nếu fact chưa có dòng POB thì không đổi số; khi có POB, số 3 trang này KHÔNG đổi (đúng QĐ-51), chỉ trang Logistics record cộng POB.
+- `?action=pob` đọc sheet 18 trực tiếp — cần deploy New version; bản cũ trả 'Unknown action'.
+
 ## 2026-07-22 (khuya-3) — Chạy thật + fix + plan Logistics record + Phase A port PQ
 
 ### ✅ Task completed

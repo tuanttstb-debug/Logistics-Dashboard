@@ -2,6 +2,23 @@
 
 > Ghi mọi thay đổi, mới nhất trên cùng.
 
+## 2026-07-25 (v0.3.0) — Phase A hoàn chỉnh + Phase B trang Logistics record
+
+### Bối cảnh
+Hoàn tất các chiều phân loại còn thiếu của pipeline (Route/Loại hàng/POB) và dựng trang **Logistics record** bám báo cáo CEO Excel. Ground truth: `context/11_BUSINESS_RULES.md` §6/§7/§9 + header raw thật (`backend/Setup.gs` 16/17/18/26).
+
+### Thay đổi
+- **feat(gas):** `Transform.gs` — **Route ×3** (`buildRouteExport_` sheet 16 khóa B/L=Tracking#, chuẩn hóa Transfer→Other/x→null; `buildRouteWTA_` winner-take-all sheet 17 theo CDS & BL, hòa→Trị giá NT; `routeFor_` ưu tiên UpdateManual→Export→CDS→BL→Third party 'Other'→null, Overhead→null), **Loại hàng ×2** (`loadMapLoaiHinh_` 26 + `buildLoaiHang_` sheet 17, xung đột→null, `loaiHangFor_` chỉ hàng nhập), **UpdateManual** (`buildUpdateManual_`, tab 25 optional), **POB** (`stagePOB_` sheet 18 → nhãn `Pay on behalf`, AMOUNT VND→USD tỷ giá tháng). `commonTier_(r,rate,dims)`. `report_` tách **Full vs POB**.
+- **feat(gas):** `Code.gs` `?action=pob` + `DataService.gs::getPOB()` (đọc 18 lấy quote-customer/remark + Amount_USD).
+- **feat(web):** `report.js` — `lrMonthlySeries/lrImport/lrExport/lrOverhead` (**khử trùng** CW/B-L/CDS theo lô — trọng lượng & số lô/tờ khai đúng); **QĐ-51** lọc `Pay on behalf` khỏi dashboard/forwarder/route.
+- **feat(web):** `views.js` `logisticsRecord` (bảng phân cấp tháng-cột: Full/POB/Total · Import theo loại hàng · Export theo dự án · Overhead) + `pobTable`; `app.js` nav `logistics-record` + 2 bar chart + `loadPOB`; `index.html` nav item; `api.js`/`routes.js` `pob()`; `mock-data.js` +Loại hàng/CW/CDS/POB + `MOCK_POB`.
+- **chore:** version bump **0.3.0** (env.js, Config.gs, index.html).
+- **test:** `test/run_tests.cjs` (Node + Spreadsheet giả) — **46/46 PASS**. Bằng chứng `EVD/` (txt/json + `preview_live.html` mock + screenshot). Xác minh trình duyệt: Dashboard total = Full (POB loại), Logistics record 4 khối + chart + POB detail 2 dòng.
+- **docs:** QĐ-51 (PLAN_LOGISTICS_RECORD); SESSION_HANDOVER/PROJECT_STATE/TODO_NEXT.
+
+### Đối chiếu (người dùng chạy thật)
+Dán `backend/*.gs` → `rebuildFact()` → **Full ≈ $44.062** (7 nguồn như cũ) + dòng **POB** riêng; log "Route/Loại hàng có giá trị" > 0. **Deploy New version** cho `?action=pob`.
+
 ## 2026-07-22 (khuya-3) — Phase A: port Power Query (staging đủ 6 nguồn)
 
 ### Bối cảnh

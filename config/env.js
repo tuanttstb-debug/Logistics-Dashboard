@@ -3,7 +3,7 @@
  * File này nạp ĐẦU TIÊN (xem index.html). */
 window.APP_CONFIG = {
   APP_NAME: 'Logistics Cost Dashboard',
-  VERSION: '0.2.0',
+  VERSION: '0.3.0',
 
   // Dán URL Web App của Apps Script vào đây (dạng https://script.google.com/macros/s/.../exec)
   // Để trống '' ở Chặng 1 → web hiện màn hình placeholder.

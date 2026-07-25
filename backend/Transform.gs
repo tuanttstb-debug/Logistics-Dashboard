@@ -62,6 +62,8 @@ function rebuildFact() {
       (have.length ? 'Đang có: ' + have.join(', ') + '. ' : 'Bảng RỖNG. ') + 'Thêm dòng ' + month + ' | <tỷ giá>.');
   }
 
+  var dims = loadDims_(ss);  // Route ×3 + Loại hàng ×2 + UpdateManual (§6/§7/§9)
+
   var raw = [];  // các dòng phí (chưa qua tầng chung)
   var qc = { unmapped: {}, perSource: {} };
 
@@ -74,16 +76,37 @@ function rebuildFact() {
   stageOverhead_(ss, '19_Overhead_Raw', maps.cost, month, raw, qc);
   qc.perSource['Overhead'] = raw.length - nOv;
 
-  // Tầng chung
+  // Tầng chung (Full logistics — không gồm POB)
   var fact = [];
   raw.forEach(function (r) {
     if (num_(r.Amount) === 0 || num_(r.Amount) === null) return; // Amount ≠ 0
-    commonTier_(r, rate);
+    commonTier_(r, rate, dims);
     fact.push(r);
   });
+  var fullCount = fact.length;
+
+  // POB (QĐ-48/50): sheet 18 → nhãn Import/Export='Pay on behalf', VND→USD tỷ giá tháng
+  var pob = stagePOB_(ss, month, rate);
+  pob.forEach(function (p) { fact.push(p); });
+  qc.perSource['POB (Pay on behalf)'] = pob.length;
 
   writeFact_(ss, fact);
-  return report_(month, rate, fact, qc);
+  return report_(month, rate, fact, qc, fullCount);
+}
+
+// Nạp toàn bộ chiều phân loại phụ (đọc Sheets 1 lần) cho tầng chung
+function loadDims_(ss) {
+  var mapLH = loadMapLoaiHinh_(ss);
+  var wta = buildRouteWTA_(ss);
+  var lh = buildLoaiHang_(ss, mapLH);
+  return {
+    updateManual: buildUpdateManual_(ss),
+    routeExport: buildRouteExport_(ss),
+    routeCDS: wta.byCDS,
+    routeBL: wta.byBL,
+    loaiHangCDS: lh.byCDS,
+    loaiHangBL: lh.byBL,
+  };
 }
 
 // ───────────────────────── Staging (UnpivotOtherColumns) ─────────────────────────
@@ -142,7 +165,7 @@ function stageOverhead_(ss, tab, costMap, month, out, qc) {
 }
 
 // ───────────────────────── Tầng chung (per dòng) ─────────────────────────
-function commonTier_(r, rate) {
+function commonTier_(r, rate, dims) {
   r.USD_Rate = rate;
   // Amount_USD (§2)
   if (r.Forwarder === 'EI') {
@@ -153,9 +176,34 @@ function commonTier_(r, rate) {
   }
   r['Mode chuẩn'] = modeChuan_(r.Forwarder, r.Mode);
   r['Import/Export'] = impExp_(r);
-  // Route / Loại hàng: bước kế (giữ null)
-  if (r.Route === undefined) r.Route = null;
-  if (r['Loại hàng'] === undefined) r['Loại hàng'] = null;
+  r.Route = routeFor_(r, dims);          // §6.3
+  r['Loại hàng'] = loaiHangFor_(r, dims); // §7
+}
+
+// Route cuối (§6.3): UpdateManual → Route_Export → Route_CDS → Route_BL → (Third party→'Other') → null; Overhead→null
+function routeFor_(r, dims) {
+  if (r['FWD Column'] === 'Overhead FWD') return null;
+  var bl = str_(r['B/L']), cds = str_(r['CDS NO.']);
+  var um = bl && dims.updateManual[bl];
+  if (um && um.Route) return um.Route;
+  if (bl && dims.routeExport[bl]) return dims.routeExport[bl];
+  if (cds && dims.routeCDS[cds]) return dims.routeCDS[cds];
+  if (bl && dims.routeBL[bl]) return dims.routeBL[bl];
+  if (r['Import/Export'] === 'Third party') return 'Other'; // §5
+  return null;
+}
+
+// Loại hàng (§7): Overhead→null; UpdateManual override; else CHỈ hàng nhập → LH_CDS → LH_BL; else null
+function loaiHangFor_(r, dims) {
+  if (r['FWD Column'] === 'Overhead FWD') return null;
+  var bl = str_(r['B/L']);
+  var um = bl && dims.updateManual[bl];
+  if (um && um['Loại hàng']) return um['Loại hàng'];
+  if (r['Import/Export'] !== 'Import') return null; // chỉ áp cho hàng nhập
+  var cds = str_(r['CDS NO.']);
+  if (cds && dims.loaiHangCDS[cds]) return dims.loaiHangCDS[cds];
+  if (bl && dims.loaiHangBL[bl]) return dims.loaiHangBL[bl];
+  return null;
 }
 
 // Mode chuẩn — khớp chuỗi CHÍNH XÁC như PQ (§3)
@@ -221,6 +269,146 @@ function normInv_(v) {
   var s = String(v == null ? '' : v).replace(/UHAN-/g, '');
   if (s.indexOf('-') >= 0) s = s.substring(0, s.lastIndexOf('-'));
   return s.trim();
+}
+
+// ───────────────────────── Route ×3 (§6) ─────────────────────────
+// Chuẩn hóa Route nguồn (§6.4): Transfer→Other · x/trống→null · giữ nguyên còn lại
+function normRoute_(v) {
+  var s = str_(v);
+  if (!s) return null;
+  var low = s.toLowerCase();
+  if (low === 'x') return null;
+  if (low === 'transfer') return 'Other';
+  return s;
+}
+
+// Route hàng XUẤT (§6.2): sheet 16, khóa B/L = Tracking#, lấy cột "Route (Note cho FCA, DAP)"
+function buildRouteExport_(ss) {
+  var t = readSheetObjects_(ss, '16_ExportMgmt_Raw', ['Tracking#']);
+  var map = {};
+  if (!t) return map;
+  var routeCol = t.headers.filter(function (h) { return h.indexOf('Route') === 0; })[0] || 'Route (Note cho FCA, DAP)';
+  t.rows.forEach(function (r) {
+    var trk = str_(r['Tracking#']), route = normRoute_(r[routeCol]);
+    if (trk && route && map[trk] === undefined) map[trk] = route; // distinct: dòng đầu
+  });
+  return map;
+}
+
+// Route winner-take-all (§6.1) từ sheet 17: theo CDS và theo B/L.
+// Mỗi khóa → route có Σ số lượng lớn nhất; hòa → Σ Trị giá NT lớn nhất.
+function buildRouteWTA_(ss) {
+  var t = readSheetObjects_(ss, '17_CustomsDetail_Raw', ['CDS NO.', 'Route']);
+  if (!t) return { byCDS: {}, byBL: {} };
+  var qtyCol = pickCol_(t.headers, ['Tổng số lượng', 'Số lượng kiện', 'Số lượng']);
+  var valCol = pickCol_(t.headers, ['Trị giá NT', 'Trị giá']);
+  var cdsAgg = {}, blAgg = {};
+  t.rows.forEach(function (r) {
+    var route = normRoute_(r['Route']);
+    if (!route) return; // dòng không có route: không tham gia bình chọn
+    var qty = num_(r[qtyCol]) || 0, val = num_(r[valCol]) || 0;
+    var cds = str_(r['CDS NO.']), bl = str_(r['B/L']);
+    if (cds) accWTA_(cdsAgg, cds, route, qty, val);
+    if (bl) accWTA_(blAgg, bl, route, qty, val);
+  });
+  return { byCDS: reduceWTA_(cdsAgg), byBL: reduceWTA_(blAgg) };
+}
+function accWTA_(agg, key, route, qty, val) {
+  var g = agg[key] || (agg[key] = {});
+  var a = g[route] || (g[route] = { qty: 0, val: 0 });
+  a.qty += qty; a.val += val;
+}
+function reduceWTA_(agg) {
+  var out = {};
+  Object.keys(agg).forEach(function (key) {
+    var g = agg[key], best = null;
+    Object.keys(g).forEach(function (rt) {
+      if (best === null) { best = rt; return; }
+      var a = g[rt], b = g[best];
+      if (a.qty > b.qty || (a.qty === b.qty && a.val > b.val)) best = rt;
+    });
+    if (best !== null) out[key] = best;
+  });
+  return out;
+}
+
+// ───────────────────────── Loại hàng ×2 (§7) ─────────────────────────
+// 26_Map_LoaiHinh: Mã loại hình → Loại hàng (E11/E15→Material; E13/G13/G51→Equipment & Toolings)
+function loadMapLoaiHinh_(ss) {
+  var t = readSheetFirst_(ss, ['26_Map_LoaiHinh', 'MapLoaiHinh'], ['Mã loại hình', 'Loại hàng']);
+  var m = {};
+  if (!t) return m;
+  t.rows.forEach(function (r) {
+    var code = str_(r['Mã loại hình']).toUpperCase(), lh = str_(r['Loại hàng']);
+    if (code && lh) m[code] = lh;
+  });
+  return m;
+}
+// LoaiHang_byCDS + byBL từ sheet 17: mỗi khóa gom Loại hàng phân biệt; lẫn ≥2 nhóm → null (điền tay)
+function buildLoaiHang_(ss, mapLH) {
+  var t = readSheetObjects_(ss, '17_CustomsDetail_Raw', ['CDS NO.', 'Mã loại hình']);
+  if (!t) return { byCDS: {}, byBL: {} };
+  var cdsSet = {}, blSet = {};
+  t.rows.forEach(function (r) {
+    var code = str_(r['Mã loại hình']).toUpperCase(), lh = mapLH[code];
+    if (!lh) return; // mã map rỗng (E42/xuất...) → bỏ qua
+    var cds = str_(r['CDS NO.']), bl = str_(r['B/L']);
+    if (cds) (cdsSet[cds] = cdsSet[cds] || {})[lh] = 1;
+    if (bl) (blSet[bl] = blSet[bl] || {})[lh] = 1;
+  });
+  return { byCDS: reduceLH_(cdsSet), byBL: reduceLH_(blSet) };
+}
+function reduceLH_(set) {
+  var out = {};
+  Object.keys(set).forEach(function (k) {
+    var lhs = Object.keys(set[k]);
+    out[k] = (lhs.length === 1) ? lhs[0] : null; // xung đột → null
+  });
+  return out;
+}
+
+// ───────────────────────── UpdateManual (§9) — ưu tiên cao nhất ─────────────────────────
+// Bảng 25: mỗi B/L đúng 1 dòng (Table.Distinct → dòng đầu). 5 cột: B/L, Route, Import/Export, Mode, Loại hàng.
+function buildUpdateManual_(ss) {
+  var t = readSheetFirst_(ss, ['25_UpdateManual', '25_Update_Manual', 'UpdateManual'], ['B/L']);
+  var m = {};
+  if (!t) return m; // tab optional — chưa có thì bỏ qua
+  t.rows.forEach(function (r) {
+    var bl = str_(r['B/L']);
+    if (!bl || m[bl] !== undefined) return;
+    m[bl] = { Route: str_(r['Route']) || null, 'Import/Export': str_(r['Import/Export']) || null,
+      Mode: str_(r['Mode']) || null, 'Loại hàng': str_(r['Loại hàng']) || null };
+  });
+  return m;
+}
+
+// ───────────────────────── POB (QĐ-48/50) ─────────────────────────
+// sheet 18 → fact rows nhãn Import/Export='Pay on behalf'. AMOUNT là VND → USD theo tỷ giá tháng.
+function stagePOB_(ss, month, rate) {
+  var t = readSheetObjects_(ss, '18_ImportPOB_Raw', ['B/L', 'AMOUNT']);
+  var out = [];
+  if (!t) return out;
+  t.rows.forEach(function (r) {
+    var amt = num_(r['AMOUNT']);
+    if (amt === null || amt === 0) return;
+    out.push({
+      Month: month, Forwarder: 'POB',
+      'B/L': str_(r['B/L']) || null, 'INVOICE NO.': str_(r['INVOICE NO.']) || null,
+      Shipper: str_(r['SHIPPER/CONSIGNEE']) || null,
+      'Original Cost Name': 'Pay on behalf', Amount: amt, Currency: 'VND',
+      USD_Rate: rate, Amount_USD: amt / rate,
+      'Standard Cost': 'Pay on behalf', 'FWD Column': null,
+      'Mode chuẩn': null, 'Import/Export': 'Pay on behalf',
+      Route: normRoute_(r['ROUTE']), 'Loại hàng': null,
+    });
+  });
+  return out;
+}
+
+// Chọn cột đầu tiên tồn tại trong headers (theo danh sách ưu tiên)
+function pickCol_(headers, cands) {
+  for (var i = 0; i < cands.length; i++) if (headers.indexOf(cands[i]) >= 0) return cands[i];
+  return cands[0];
 }
 
 // ───────────────────────── Maps & config ─────────────────────────
@@ -331,9 +519,21 @@ function num_(v) {
   return isNaN(f) ? null : f;
 }
 
-function report_(month, rate, fact, qc) {
-  var tot = 0; fact.forEach(function (o) { tot += (o.Amount_USD || 0); });
-  var lines = ['✅ rebuildFact — tháng ' + month + ' (rate ' + rate + ')', 'Tổng: ' + fact.length + ' dòng · $' + Math.round(tot * 100) / 100];
+function report_(month, rate, fact, qc, fullCount) {
+  var full = 0, pob = 0, nRoute = 0, nLH = 0;
+  fact.forEach(function (o) {
+    if (o['Import/Export'] === 'Pay on behalf') pob += (o.Amount_USD || 0);
+    else full += (o.Amount_USD || 0);
+    if (o.Route) nRoute++;
+    if (o['Loại hàng']) nLH++;
+  });
+  var r2 = function (n) { return Math.round(n * 100) / 100; };
+  var nPob = fact.length - (fullCount == null ? fact.length : fullCount);
+  var lines = ['✅ rebuildFact — tháng ' + month + ' (rate ' + rate + ')',
+    'Full (không POB): ' + (fullCount == null ? fact.length : fullCount) + ' dòng · $' + r2(full),
+    'POB: ' + nPob + ' dòng · $' + r2(pob),
+    'TỔNG (Full+POB): ' + fact.length + ' dòng · $' + r2(full + pob),
+    'Route có giá trị: ' + nRoute + ' · Loại hàng có giá trị: ' + nLH];
   Object.keys(qc.perSource).forEach(function (f) { lines.push('  · ' + f + ': ' + qc.perSource[f]); });
   var un = Object.keys(qc.unmapped);
   if (un.length) lines.push('⚠️ Phí CHƯA map (' + un.length + '): ' + un.join('; '));

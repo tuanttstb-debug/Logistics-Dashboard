@@ -10,6 +10,7 @@ function doGet(e) {
       case 'ping':  return jsonResponse({ ok: true, version: CONFIG.VERSION });
       case 'facts': return jsonResponse(getFacts(e.parameter.month));
       case 'meta':  return jsonResponse(getMeta());
+      case 'pob':   return jsonResponse(getPOB());
       default:      return jsonResponse({ ok: false, error: 'Unknown action: ' + action });
     }
   } catch (err) {

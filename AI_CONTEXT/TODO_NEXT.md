@@ -24,15 +24,16 @@
 ## ✅ Ưu tiên 2b — rebuildFact courier + fix (XONG)
 - [x] Chạy `rebuildFact()` courier+overhead; fix: validate tháng, `monthKey_`, `writeFact_` làm chủ tab (xóa+tạo), bỏ dư `INVOICE NO.` (§6), nút Đồng bộ web, deploy "New version".
 
-## 🔴 Ưu tiên 2c — Phase A: port PQ đủ 6 nguồn (ĐANG)
-- [x] Trích 22 query M gốc (`data/_source/pq_section1.m`). Viết lại `Transform.gs` theo khuôn `UnpivotOtherColumns`; thêm VVMV/Dolphin/EI.
-- [ ] **Dán `Transform.gs` mới → `rebuildFact()` → đối chiếu 1.480 dòng/$44.062** (VVMV 936/$27.056 · Dolphin 29/$2.195 · EI 37/$2.105 · DHL 23/$1.398 · FedExExp 25/$585 · FedExImp 429/$9.891 · Overhead 4/$1.066). Lệch → soi QC.
-- [ ] **Route ×3 + Loại hàng ×2** (mã M có sẵn: winner-take-all sheet 17, bridge sheet 16, Map_LoaiHinh 26). Cần dán tab **25_UpdateManual** (optional).
-- [ ] **POB** sheet 18 → nhãn `Import/Export='Pay on behalf'` (QĐ-48/50, VND→USD).
+## 🔴 Ưu tiên 2c — Phase A: port PQ đủ 6 nguồn + Route/Loại hàng/POB (XONG code)
+- [x] Trích 22 query M gốc. Viết lại `Transform.gs` theo khuôn `UnpivotOtherColumns`; thêm VVMV/Dolphin/EI.
+- [x] **Route ×3 + Loại hàng ×2 + UpdateManual + POB** trong `Transform.gs` (2026-07-25). Test 46/46 PASS (`test/run_tests.cjs`, EVD).
+- [ ] **Người dùng:** dán `backend/*.gs` mới → `rebuildFact()` → đối chiếu **Full ≈ $44.062** (VVMV 936/$27.056 · Dolphin 29/$2.195 · EI 37/$2.105 · DHL 23/$1.398 · FedExExp 25/$585 · FedExImp 429/$9.891 · Overhead 4/$1.066) + dòng **POB** riêng; kiểm log "Route/Loại hàng có giá trị" > 0. Lệch → soi QC.
 
-## 🔴 Ưu tiên 2d — Phase B: trang Logistics record (sau pipeline)
-- [ ] `report.js` tổng hợp (chuỗi tháng Full/POB/Total · Import theo Loại hàng · Export theo Route · Overhead) + `views.js` bảng phân cấp + 2 bar chart + action `?action=pob`. Chi tiết: `PLAN_LOGISTICS_RECORD.md`.
+## 🟢 Ưu tiên 2d — Phase B: trang Logistics record (XONG code)
+- [x] `report.js` (`lrMonthlySeries/lrImport/lrExport/lrOverhead`, khử trùng CW/B-L/CDS) + `views.js` bảng phân cấp + `pobTable` + `app.js` 2 bar chart + `?action=pob` (`getPOB`). **QĐ-51** lọc POB khỏi 3 trang Full. Xác minh trình duyệt (EVD).
+- [ ] **Người dùng:** **Deploy → New version** để `?action=pob` sống (POB detail trên web).
 - [ ] Viết **SOP đẩy Excel→Sheets** từng bước (Refresh All → copy raw 10–19 → paste values → rebuildFact).
+- [ ] So bố cục trang Logistics record với ảnh báo cáo Excel thật; chỉnh nhãn/thứ tự dự án nếu cần.
 
 ## 🟠 Ưu tiên 3 — Xác minh & hoàn thiện UI
 - [ ] Mở `index.html` kiểm 4 trang + đổi tháng + dark mode + mobile (768/480).

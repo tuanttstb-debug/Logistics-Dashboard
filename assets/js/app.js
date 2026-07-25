@@ -81,7 +81,7 @@
     document.querySelectorAll('[data-view]').forEach(function (el) {
       el.classList.toggle('is-active', el.getAttribute('data-view') === _view);
     });
-    var titles = { dashboard: 'Dashboard chi phí logistics', forwarder: 'Báo cáo CEO — theo forwarder', route: 'Chi phí theo Route', about: 'Giới thiệu' };
+    var titles = { dashboard: 'Dashboard chi phí logistics', forwarder: 'Báo cáo CEO — theo forwarder', 'logistics-record': 'Logistics record', route: 'Chi phí theo Route', about: 'Giới thiệu' };
     var t = document.getElementById('topbarTitle');
     if (t) t.textContent = titles[_view] || '';
   }
@@ -91,13 +91,15 @@
     syncNav();
     var html;
     switch (_view) {
-      case 'forwarder': html = Views.forwarder(_month); break;
-      case 'route':     html = Views.route(_month); break;
-      case 'about':     html = Views.about(); break;
-      default:          html = Views.dashboard(_month);
+      case 'forwarder':         html = Views.forwarder(_month); break;
+      case 'logistics-record':  html = Views.logisticsRecord(_month); break;
+      case 'route':             html = Views.route(_month); break;
+      case 'about':             html = Views.about(); break;
+      default:                  html = Views.dashboard(_month);
     }
     setMain(html);
     if (_view === 'dashboard') drawCharts(_month);
+    if (_view === 'logistics-record') { drawLRCharts(); loadPOB(); }
   }
 
   // ---------- Charts ----------
@@ -147,6 +149,56 @@
   function mkChart(id, cfg) {
     var el = document.getElementById(id); if (!el) return;
     _charts.push(new Chart(el.getContext('2d'), cfg));
+  }
+  function setChartTheme() {
+    if (typeof Chart === 'undefined') return;
+    Chart.defaults.color = cssVar('--text-2');
+    Chart.defaults.font.family = cssVar('--font') || 'sans-serif';
+  }
+  function barOpts() {
+    var grid = cssVar('--border');
+    return { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } },
+      scales: { x: { grid: { display: false } }, y: { grid: { color: grid }, beginAtZero: true } } };
+  }
+
+  // ---------- Logistics record charts (2 bar, nhiều series theo tháng) ----------
+  function drawLRCharts() {
+    if (typeof Chart === 'undefined') { H.log('Chart.js chưa tải'); return; }
+    setChartTheme();
+    var imp = Report.lrImport();
+    mkChart('chartLRImport', {
+      type: 'bar',
+      data: {
+        labels: imp.months.map(function (m) { return Views.fmtMonth(m); }),
+        datasets: imp.buckets.map(function (b, i) {
+          return { label: b, backgroundColor: PALETTE[i % PALETTE.length],
+            data: imp.months.map(function (m) { return imp.data[m][b].subtotal; }) };
+        })
+      }, options: barOpts()
+    });
+    var exp = Report.lrExport();
+    mkChart('chartLRExport', {
+      type: 'bar',
+      data: {
+        labels: exp.months.map(function (m) { return Views.fmtMonth(m); }),
+        datasets: exp.projects.map(function (p, i) {
+          return { label: p, backgroundColor: PALETTE[i % PALETTE.length],
+            data: exp.months.map(function (m) { return exp.data[m][p].subtotal; }) };
+        })
+      }, options: barOpts()
+    });
+  }
+
+  // POB detail: fetch ?action=pob (hoặc mock) → đổ vào #pobDetail
+  function loadPOB() {
+    var el = document.getElementById('pobDetail');
+    if (!el) return;
+    if (window.Api.configured()) {
+      Api.pob().then(function (res) { el.innerHTML = Views.pobTable((res && res.rows) || []); })
+        .catch(function (e) { H.log(e); el.innerHTML = '<div class="empty-state"><p>Lỗi tải POB: ' + H.esc(e.message) + '</p></div>'; });
+    } else {
+      el.innerHTML = Views.pobTable(window.MOCK_POB || []);
+    }
   }
 
   // ---------- shell ----------

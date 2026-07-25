@@ -100,6 +100,113 @@
     return html;
   }
 
+  // ---------- LOGISTICS RECORD (Phase B) ----------
+  function num(v) { return H.num(Math.round(Number(v) || 0)); }
+  function lrHead(months) {
+    return '<th>Chỉ tiêu</th>' + months.map(function (m) {
+      return '<th class="num">' + fmtMonth(m) + '</th>';
+    }).join('');
+  }
+  // hàng tiền: label + 1 ô/tháng lấy qua getter(month)
+  function moneyRow(label, months, getter, cls) {
+    return '<tr class="' + (cls || 'row-line') + '"><td>' + label + '</td>' +
+      months.map(function (m) { return numTd(getter(m)); }).join('') + '</tr>';
+  }
+  function plainRow(label, months, getter) {
+    return '<tr class="row-line row-aux"><td>' + label + '</td>' +
+      months.map(function (m) { return '<td class="num">' + num(getter(m)) + '</td>'; }).join('') + '</tr>';
+  }
+  // khối chỉ tiêu 1 nhóm (Freight / Customs&Trucking / LCC / Subtotal + Weight/Shipments/Declarations)
+  function metricBlock(name, months, pick, opts) {
+    opts = opts || {};
+    var h = '<tr class="row-block"><td>' + H.esc(name) + '</td>' +
+      months.map(function (m) { return numTd(pick(m).subtotal, 'ytd'); }).join('') + '</tr>';
+    h += moneyRow('&nbsp;&nbsp;• Freight', months, function (m) { return pick(m).freight; });
+    h += moneyRow('&nbsp;&nbsp;• Customs &amp; Trucking fees', months, function (m) { return pick(m).customsTrucking; });
+    h += moneyRow('&nbsp;&nbsp;• Local charges (LCC)', months, function (m) { return pick(m).lcc; });
+    h += plainRow('&nbsp;&nbsp;· Weight (KG)', months, function (m) { return pick(m).weight; });
+    if (!opts.noShip) h += plainRow('&nbsp;&nbsp;· Shipment No#', months, function (m) { return pick(m).shipments; });
+    if (opts.decl) h += plainRow('&nbsp;&nbsp;· Declaration No#', months, function (m) { return pick(m).declarations; });
+    return h;
+  }
+
+  function logisticsRecord(month) {
+    var series = Report.lrMonthlySeries();
+    if (!series.length) return emptyCard('Chưa có dữ liệu Logistics record');
+    var months = series.map(function (s) { return s.month; });
+    var imp = Report.lrImport(), exp = Report.lrExport(), ov = Report.lrOverhead();
+    var html = '';
+
+    // 1) Chuỗi tháng Full / POB / Total
+    var sByM = {}; series.forEach(function (s) { sByM[s.month] = s; });
+    html += '<div class="card"><div class="card-head"><h3 class="card-title">Tổng chi phí logistics theo tháng</h3>' +
+      '<span class="card-meta">Full · Pay on behalf · Total</span></div>' +
+      '<div class="table-scroll"><table class="tbl tbl-report"><thead><tr>' + lrHead(months) + '</tr></thead><tbody>' +
+      moneyRow('Full logistics cost (Unigen pays)', months, function (m) { return sByM[m].full; }, 'row-line') +
+      moneyRow('Pay on behalf of others', months, function (m) { return sByM[m].pob; }, 'row-line') +
+      moneyRow('TOTAL', months, function (m) { return sByM[m].total; }, 'row-total') +
+      '</tbody></table></div></div>';
+
+    // 2) Import — chart + bảng
+    html += '<div class="card"><div class="card-head"><h3 class="card-title">Import theo loại hàng</h3></div>' +
+      '<div class="chart-box chart-box--wide"><canvas id="chartLRImport"></canvas></div>' +
+      '<div class="table-scroll"><table class="tbl tbl-report"><thead><tr>' + lrHead(months) + '</tr></thead><tbody>';
+    imp.buckets.forEach(function (b) {
+      html += metricBlock(b, months, function (m) { return imp.data[m][b]; }, { decl: true });
+    });
+    html += '<tr class="row-total"><td>SUBTOTAL IMPORT</td>' +
+      months.map(function (m) { return numTd(imp.subtotal[m].subtotal); }).join('') + '</tr>';
+    html += '</tbody></table></div></div>';
+
+    // 3) Export — chart + bảng (theo dự án/Route)
+    html += '<div class="card"><div class="card-head"><h3 class="card-title">Export theo dự án</h3></div>' +
+      '<div class="chart-box chart-box--wide"><canvas id="chartLRExport"></canvas></div>' +
+      '<div class="table-scroll"><table class="tbl tbl-report"><thead><tr>' + lrHead(months) + '</tr></thead><tbody>';
+    if (!exp.projects.length) {
+      html += '<tr class="row-line"><td colspan="' + (months.length + 1) + '">(chưa có lô xuất)</td></tr>';
+    }
+    exp.projects.forEach(function (p) {
+      html += metricBlock(p, months, function (m) { return exp.data[m][p]; }, { noShip: false });
+    });
+    html += '<tr class="row-total"><td>SUBTOTAL EXPORT</td>' +
+      months.map(function (m) { return numTd(exp.subtotal[m].subtotal); }).join('') + '</tr>';
+    html += '</tbody></table></div></div>';
+
+    // 4) Overhead
+    html += '<div class="card"><div class="card-head"><h3 class="card-title">Overhead (Customs fees in Month / Others)</h3></div>' +
+      '<div class="table-scroll"><table class="tbl tbl-report"><thead><tr>' + lrHead(months) + '</tr></thead><tbody>';
+    ov.labels.forEach(function (l) {
+      html += moneyRow(H.esc(l), months, function (m) { return ov.data[m][l]; });
+    });
+    html += '<tr class="row-total"><td>TỔNG Overhead</td>' +
+      months.map(function (m) { return numTd(ov.total[m]); }).join('') + '</tr>';
+    html += '</tbody></table></div></div>';
+
+    // 5) POB detail — nạp bất đồng bộ qua ?action=pob (app.js đổ vào #pobDetail)
+    html += '<div class="card"><div class="card-head"><h3 class="card-title">Chi tiết Pay-on-behalf</h3>' +
+      '<span class="card-meta">Đã chi (không đưa số THU vào tổng chi phí)</span></div>' +
+      '<div id="pobDetail"><div class="empty-state">Đang tải chi tiết…</div></div></div>';
+
+    return html;
+  }
+
+  // Bảng chi tiết POB (app.js gọi sau khi fetch ?action=pob)
+  function pobTable(rows) {
+    if (!rows || !rows.length) return '<div class="empty-state"><p>Không có bản ghi Pay-on-behalf.</p></div>';
+    var h = '<div class="table-scroll"><table class="tbl"><thead><tr>' +
+      '<th>Tracking / INV</th><th>Consignee / Shipper</th><th class="num">Amount (USD)</th>' +
+      '<th class="num">Quote customer</th><th>Route</th><th>Remark</th></tr></thead><tbody>';
+    rows.forEach(function (r) {
+      var trk = r['B/L'] || r['INVOICE NO.'] || '';
+      h += '<tr><td>' + H.esc(trk) + '</td><td>' + H.esc(r['Shipper/Consignee'] || '') + '</td>' +
+        numTd(r.Amount_USD) +
+        '<td class="num">' + (r['Quote customer'] != null ? H.num(Math.round(r['Quote customer'])) : '—') + '</td>' +
+        '<td>' + H.esc(r.Route || '') + '</td><td>' + H.esc(r.Remark || '') + '</td></tr>';
+    });
+    h += '</tbody></table></div>';
+    return h;
+  }
+
   function about() {
     return '<div class="card"><div class="card-head"><h3 class="card-title">Giới thiệu</h3></div>' +
       '<p><b>Logistics Cost Dashboard</b> — tầng báo cáo chi phí logistics cho CEO. ' +
@@ -113,5 +220,6 @@
     return '<div class="card"><div class="empty-state"><div class="big">📭</div><p>' + H.esc(msg) + '</p></div></div>';
   }
 
-  window.Views = { dashboard: dashboard, forwarder: forwarder, route: route, about: about, fmtMonth: fmtMonth };
+  window.Views = { dashboard: dashboard, forwarder: forwarder, route: route, about: about,
+    logisticsRecord: logisticsRecord, pobTable: pobTable, fmtMonth: fmtMonth };
 })();

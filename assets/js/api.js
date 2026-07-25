@@ -11,5 +11,6 @@
     ping:  function ()      { return getJSON(window.ROUTES.ping()); },
     facts: function (month) { return getJSON(window.ROUTES.facts(month)); },
     meta:  function ()      { return getJSON(window.ROUTES.meta()); },
+    pob:   function ()      { return getJSON(window.ROUTES.pob()); },
   };
 })();

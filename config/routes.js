@@ -17,5 +17,6 @@
     ping:  function ()        { return build('ping', {}); },
     facts: function (month)   { return build('facts', { month: month }); },
     meta:  function ()        { return build('meta', {}); },
+    pob:   function ()        { return build('pob', {}); },
   };
 })();

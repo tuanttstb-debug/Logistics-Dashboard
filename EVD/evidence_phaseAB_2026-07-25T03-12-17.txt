@@ -1,0 +1,76 @@
+EVIDENCE — Logistics Dashboard Phase A+B
+Ngày: 2026-07-25T03:12:17.349Z
+Node: v24.16.0
+Phạm vi: Route ×3, Loại hàng ×2, POB (Transform.gs) + report.js lr* (Phase B)
+════════════════════════════════════════════
+
+[1] Backend — rebuildFact() end-to-end (Route ×3 + Loại hàng + POB + report split)
+  ✅ fact có 6 dòng (5 Full + 1 POB)
+  ✅ VVMV nhập: Route=PURE (winner-take-all)
+  ✅ VVMV nhập: Loại hàng=Material (E11)
+  ✅ VVMV nhập Customs: Amount_USD=20
+  ✅ VVMV xuất: Route=Ford (sheet 16, B/L=Tracking# qua bridge)
+  ✅ VVMV xuất: B/L=TRKEXP1 (bridge invoice)
+  ✅ VVMV xuất: Loại hàng=null (chỉ hàng nhập)
+  ✅ DHL cả 2 đầu ≠ VN: Import/Export=Third party
+  ✅ DHL Third party: Route=Other (tự động)
+  ✅ Overhead: Import/Export=Overhead
+  ✅ Overhead: Route=null (ép null)
+  ✅ POB: có nhãn Pay on behalf
+  ✅ POB: Amount_USD=10000 (VND/25000)
+  ✅ POB: Route=PURE (từ sheet 18)
+  ✅ report tách Full=5 dòng
+  ✅ report tách POB=1 dòng
+  ── report ──
+     ✅ rebuildFact — tháng 2026-06 (rate 25000)
+     Full (không POB): 5 dòng · $282
+     POB: 1 dòng · $10000
+     TỔNG (Full+POB): 6 dòng · $10282
+     Route có giá trị: 5 · Loại hàng có giá trị: 2
+       · DHL: 1
+       · FedEx Export: 0
+       · FedEx Import: 0
+       · Dolphin: 0
+       · VVMV: 4
+       · EI: 0
+       · Overhead: 1
+       · POB (Pay on behalf): 1
+
+[2] Backend — unit: normRoute_ + reduceWTA_ tie-break + routeFor_ ưu tiên
+  ✅ normRoute_('Transfer')='Other'
+  ✅ normRoute_('x')=null
+  ✅ normRoute_('  ')=null
+  ✅ normRoute_('Ford')='Ford'
+  ✅ reduceWTA_ hòa qty → chọn Trị giá NT lớn hơn (B)
+  ✅ reduceWTA_ qty lớn hơn thắng (A)
+  ✅ routeFor_ UpdateManual thắng tất cả
+  ✅ routeFor_ Overhead → null
+  ✅ routeFor_ CDS trước BL
+  ✅ loaiHangFor_ hàng xuất → null
+
+[3] Frontend — report.js lr* (khử trùng trọng lượng + tách POB)
+  ✅ lrMonthlySeries Full excludes POB (100+20+200+300+40=660)
+  ✅ lrMonthlySeries POB=10000
+  ✅ lrMonthlySeries Total=Full+POB=10660
+  ✅ lrImport Raw materials subtotal=120
+  ✅ lrImport Raw materials weight KHỬ TRÙNG theo B/L = 120 (không 240)
+  ✅ lrImport Raw materials shipments=1
+  ✅ lrImport Raw materials declarations=1
+  ✅ lrImport Equipment subtotal=200
+  ✅ lrImport Subtotal Import=320
+  ✅ lrExport có dự án Ford
+  ✅ lrExport Ford subtotal=300
+  ✅ lrOverhead total=40
+  ✅ dashboard.total EXCLUDES POB (=660)
+
+[4] Frontend — views.js render Logistics record + POB table
+  ✅ Views.logisticsRecord không ném lỗi
+  ✅ HTML có canvas chartLRImport
+  ✅ HTML có canvas chartLRExport
+  ✅ HTML có mục Full logistics cost
+  ✅ HTML có SUBTOTAL IMPORT
+  ✅ HTML có #pobDetail placeholder
+  ✅ pobTable render dòng POB
+
+══════════════════════════════════════════
+KẾT QUẢ: 46 PASS · 0 FAIL

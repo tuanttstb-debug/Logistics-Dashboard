@@ -14,6 +14,7 @@ Báo cáo Excel gồm: chuỗi tháng (Full/POB/Total) · bảng Import (Raw mat
 - **QĐ-48:** **POB = sheet `18_ImportPOB_Raw`**, đưa vào fact như nhãn `Import/Export='Pay on behalf'` (tính vào tổng; report tách Full vs POB vs Total qua nhãn).
 - **QĐ-49:** Report **"Customs & Trucking fees" = chỉ nhóm `Customs` + `Trucking`**. `Origin LCC`/`Dest LCC` → **dòng riêng "Local charges (LCC)"** (Subtotal = Freight + Customs&Trucking + LCC = tổng thật).
 - **QĐ-50:** Cột AMOUNT sheet 18 (POB) = **VND** → quy USD theo `USD_Rate` tháng.
+- **QĐ-51 (2026-07-25):** POB **KHÔNG** tính vào **Full logistics cost** của Dashboard/Báo cáo CEO/Theo Route — 3 trang này lọc bỏ `Import/Export='Pay on behalf'` (giữ nguyên baseline đã validate $44.062). Chỉ trang **Logistics record** hiện Full/POB/Total riêng (đúng §12c "chỉ số ĐÃ CHI"). POB vẫn nằm trong `40_FACT_CostLines` nhãn `Pay on behalf` (QĐ-48).
 - **Thứ tự Phase A:** VVMV → Dolphin → EI → Route → Loại hàng → POB (validate tổng sau mỗi bước).
 
 ## Ánh xạ report → fact
@@ -90,4 +91,8 @@ Cắm thêm staging + tầng chung; giữ đúng **bộ cột §6** cho từng n
 3. Phase B: mở trang Logistics record → so bố cục bảng + 2 chart với ảnh báo cáo Excel; kiểm Full+POB=Total; Subtotal=Freight+Customs&Trucking+LCC.
 4. Commit + push từng phase (lệ handover).
 
-## Trạng thái: PLAN CHỐT — sẵn sàng code Phase A (A1 VVMV) khi có go-ahead.
+## Trạng thái: ✅ ĐÃ CODE XONG Phase A + Phase B (2026-07-25)
+- **Phase A** (`Transform.gs`): Route ×3 (Export/CDS winner-take-all/BL) + Loại hàng ×2 + UpdateManual + POB → `commonTier_` gắn Route/Loại hàng; `report_` tách Full vs POB.
+- **Phase B**: `report.js` (lrMonthlySeries/lrImport/lrExport/lrOverhead, khử trùng CW/B-L/CDS), `views.js` (bảng phân cấp + POB detail), `app.js` (nav + 2 bar chart + fetch POB), `Code.gs`/`DataService.gs` `?action=pob`.
+- **Test:** `test/run_tests.cjs` — 46/46 PASS (rebuildFact end-to-end + unit + report.js + views render). Bằng chứng: `EVD/`.
+- **🚧 Còn lại (người dùng):** dán `backend/*.gs` mới vào Apps Script → chạy `rebuildFact()` → đối chiếu Full=$44.062 + POB; **Deploy "New version"** để `?action=pob` hoạt động.
