@@ -87,25 +87,28 @@ function ensureTab_(ss, spec) {
     wroteHeader = true;
   }
 
-  // textCols === null → ép Plain text TOÀN BỘ cột header (tab raw: giữ nguyên vẹn mã/ngày)
-  var cols = spec.textCols === null
-    ? range_(1, spec.headers.length)
-    : spec.textCols;
-  var maxRows = sh.getMaxRows();
-  // ⚠️ setNumberFormat NÉM lỗi trên cột có "column type" (cột đã nhập / smart-chip):
-  //   "Bạn không thể đặt định dạng số của các ô trong một cột đã nhập."
-  //   → try/catch TỪNG cột: bỏ qua cột lỗi, các cột còn lại vẫn được ép Plain text.
-  var fmtFail = [];
-  cols.forEach(function (c) {
-    if (c > sh.getMaxColumns()) return;
-    try { sh.getRange(1, c, maxRows, 1).setNumberFormat('@'); }
-    catch (e) { fmtFail.push(c); }
-  });
+  // Ép Plain text CHỈ khi tab VỪA tạo / còn RỖNG (chưa có data).
+  //   Tab đã có data (đã dán, hoặc đã chuyển thành Table / có "column type") → BỎ QUA:
+  //   GAS ném "Bạn không thể đặt định dạng số của các ô trong một cột đã nhập." trên cột kiểu.
+  //   Data đã dán vẫn đúng; định dạng chỉ là tiện ích lúc tab rỗng.
+  var fmtNote;
+  if (created || wroteHeader) {
+    var cols = spec.textCols === null ? range_(1, spec.headers.length) : spec.textCols;
+    var maxRows = sh.getMaxRows();
+    var fmtFail = [];
+    cols.forEach(function (c) {
+      if (c > sh.getMaxColumns()) return;
+      try { sh.getRange(1, c, maxRows, 1).setNumberFormat('@'); } // belt-and-suspenders
+      catch (e) { fmtFail.push(c); }
+    });
+    fmtNote = fmtFail.length ? ' · ⚠️ ' + fmtFail.length + ' cột kiểu bỏ Plain text (' + fmtFail.join(',') + ')'
+      : (spec.textCols === null ? ' · text toàn cột' : ' · text cột khóa');
+  } else {
+    fmtNote = ' · giữ nguyên định dạng (tab đã có data)';
+  }
 
   return (created ? '✅ TẠO' : 'ℹ️ CÓ') + ' "' + spec.name + '"' +
-    (wroteHeader ? ' + ' + spec.headers.length + ' header' : ' (giữ ' + lastRow + ' dòng)') +
-    (spec.textCols === null ? ' · text toàn cột' : ' · text cột khóa') +
-    (fmtFail.length ? ' · ⚠️ ' + fmtFail.length + ' cột "đã nhập" bỏ qua Plain text (cột ' + fmtFail.join(',') + ')' : '');
+    (wroteHeader ? ' + ' + spec.headers.length + ' header' : ' (giữ ' + lastRow + ' dòng)') + fmtNote;
 }
 
 function range_(a, b) { var o = []; for (var i = a; i <= b; i++) o.push(i); return o; }
