@@ -1,5 +1,5 @@
 {
-  "report": "✅ rebuildFact — tháng 2026-06 (rate 25000)\nFull (không POB): 5 dòng · $282\nPOB: 1 dòng · $10000\nTỔNG (Full+POB): 6 dòng · $10282\nRoute có giá trị: 5 · Loại hàng có giá trị: 2\n  · DHL: 1\n  · FedEx Export: 0\n  · FedEx Import: 0\n  · Dolphin: 0\n  · VVMV: 4\n  · EI: 0\n  · Overhead: 1\n  · POB (Pay on behalf): 1",
+  "report": "✅ rebuildFact — tháng 2026-06 (rate 25000)\nFull (không POB): 5 dòng · $282\nPOB: 1 dòng · $10000\nTỔNG (Full+POB): 6 dòng · $10282\nRoute có giá trị: 5 · Loại hàng có giá trị: 2\n── Theo nguồn (dòng · USD) ──\n  · DHL: 1 dòng · $50\n  · FedEx Export: 0 dòng · $0\n  · FedEx Import: 0 dòng · $0\n  · Dolphin: 0 dòng · $0\n  · VVMV: 3 dòng · $192 (raw 4, bỏ 1 dòng Amount=0)\n  · EI: 0 dòng · $0\n  · Overhead: 1 dòng · $40\n  · POB (Pay on behalf): 1 dòng · $10000",
   "factRows": [
     {
       "Month": "2026-06",

@@ -1,5 +1,5 @@
 EVIDENCE — Logistics Dashboard Phase A+B
-Ngày: 2026-07-25T16:38:25.467Z
+Ngày: 2026-07-28T01:46:36.089Z
 Node: v24.16.0
 Phạm vi: Route ×3, Loại hàng ×2, POB (Transform.gs) + report.js lr* (Phase B)
 ════════════════════════════════════════════
@@ -21,6 +21,7 @@ Phạm vi: Route ×3, Loại hàng ×2, POB (Transform.gs) + report.js lr* (Phas
   ✅ POB: Route=PURE (từ sheet 18)
   ✅ report tách Full=5 dòng
   ✅ report tách POB=1 dòng
+  ✅ report có $ theo nguồn (VVMV)
   ✅ getMeta.totalUsd = Full (loại POB) = 282
   ✅ getMeta.pobUsd = 10000
   ✅ getMeta.grandTotalUsd = Full+POB = 10282
@@ -30,14 +31,15 @@ Phạm vi: Route ×3, Loại hàng ×2, POB (Transform.gs) + report.js lr* (Phas
      POB: 1 dòng · $10000
      TỔNG (Full+POB): 6 dòng · $10282
      Route có giá trị: 5 · Loại hàng có giá trị: 2
-       · DHL: 1
-       · FedEx Export: 0
-       · FedEx Import: 0
-       · Dolphin: 0
-       · VVMV: 4
-       · EI: 0
-       · Overhead: 1
-       · POB (Pay on behalf): 1
+     ── Theo nguồn (dòng · USD) ──
+       · DHL: 1 dòng · $50
+       · FedEx Export: 0 dòng · $0
+       · FedEx Import: 0 dòng · $0
+       · Dolphin: 0 dòng · $0
+       · VVMV: 3 dòng · $192 (raw 4, bỏ 1 dòng Amount=0)
+       · EI: 0 dòng · $0
+       · Overhead: 1 dòng · $40
+       · POB (Pay on behalf): 1 dòng · $10000
 
 [2] Backend — unit: normRoute_ + reduceWTA_ tie-break + routeFor_ ưu tiên
   ✅ normRoute_('Transfer')='Other'
@@ -76,4 +78,4 @@ Phạm vi: Route ×3, Loại hàng ×2, POB (Transform.gs) + report.js lr* (Phas
   ✅ pobTable render dòng POB
 
 ══════════════════════════════════════════
-KẾT QUẢ: 49 PASS · 0 FAIL
+KẾT QUẢ: 50 PASS · 0 FAIL

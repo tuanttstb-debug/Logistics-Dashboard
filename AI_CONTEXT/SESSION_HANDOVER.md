@@ -2,6 +2,18 @@
 
 > Mới nhất trên cùng. Mỗi phiên một block. Chỉ ghi delta của phiên.
 
+## 2026-07-28 — Công cụ chẩn đoán lệch baseline: report_ log $ theo nguồn
+
+- **✅ Task completed:**
+  - **Nâng cấp `report_` (Transform.gs)** để phục vụ đối chiếu tổng lệch baseline ($43.322,6/1454 live vs $44.062/1480 Excel). Trước đây log per-source chỉ có **số dòng**; nay thêm **USD theo từng nguồn** + phơi số **dòng bị filter `Amount=0` nuốt**: mỗi nguồn in `<N> dòng · $<USD> (raw <M>, bỏ <K> dòng Amount=0)`.
+  - **Cơ chế:** gắn nhãn `_src` cho từng dòng fact tại orchestrator (`rebuildFact`) theo nguồn staging (STAGES.forwarder / 'Overhead' / 'POB (Pay on behalf)'); `report_` gom `usdBySrc`/`cntBySrc` theo `_src`. `_src` **không** thuộc `FACT_HEADERS` → `writeFact_` bỏ qua, không ghi ra tab fact (an toàn, không rò).
+  - Test `test/run_tests.cjs` **50/50 PASS** (+1 assert per-source USD). Mock xác minh: `VVMV: 3 dòng · $192 (raw 4, bỏ 1 dòng Amount=0)` — đúng ý đồ tách bạch.
+- **📁 Files changed:** `backend/Transform.gs` (orchestrator tag `_src` + rewrite `report_`), `test/run_tests.cjs` (+1 assert), EVD regen.
+- **🧭 Decision:** đối chiếu baseline là **HAI lỗi độc lập** — (①) **tỷ giá** (26452 vs Excel, ảnh hưởng $ đồng đều mọi nguồn VND non-EI; dự đoán rate Excel ~26008) và (②) **−26 dòng** (không do tỷ giá — nghi filter `Transform.gs:82` bỏ dòng phí 0đ, hoặc snapshot raw ≠ Excel). Per-source $ cho phép tách: tỷ lệ `live_$/excel_$` **đồng đều** → thuần tỷ giá; nguồn lệch tỷ lệ → mất dòng/sai map. EI dùng rate per-row → tỷ lệ ≈1,0 làm mốc đối chứng.
+- **🚧 Blocker / cần đối chiếu:** vẫn như handover-2 — **cần user redeploy (New version) + chạy lại `rebuildFact`** để đọc bảng "Theo nguồn" mới trong Logger; POB sheet 18 còn rỗng.
+- **➡️ Next step:** (1) redeploy + rebuildFact → đọc log per-source; (2) tính `live_$/excel_$` per nguồn để chốt rate Excel; (3) cộng cột "bỏ K dòng Amount=0" — nếu ≈26 thì thủ phạm là filter `Amount=0`, quyết fact Excel có giữ dòng 0đ không.
+- **⚠️ Regression risk:** thấp — chỉ thêm field `_src` (bị `writeFact_` bỏ) + thêm dòng log; không đổi số fact/tổng. `report_` giữ nguyên 5 dòng đầu (Full/POB/TỔNG/Route) → frontend & assert cũ không đổi.
+
 ## 2026-07-25 (handover-2) — Fix setupSheets "cột đã nhập" + DEPLOY LIVE + xác minh endpoint thật
 
 - **✅ Task completed:**

@@ -1,12 +1,13 @@
 # PROJECT STATE — Logistics Cost Dashboard
 
-**Cập nhật:** 2026-07-25
+**Cập nhật:** 2026-07-28
 
 > **Δ phiên 2026-07-22:** Chặng 1+2 xong (UI 4 trang, chạy mock) + **đã git init/commit/push** (github.com/tuanttstb-debug/Logistics-Dashboard). Đã dọn 1 clone rỗng lồng nhau.
 > **Δ (tối):** xác định phạm vi DB (QĐ-41 `40_FACT_CostLines` A:X / QĐ-42 1 tháng), hoàn thiện GAS BE, viết `SOP_DEPLOY.md`, **gỡ `data/` khỏi Git** (đã push `ba780e2`). 🔴 **Còn nợ bảo mật:** dữ liệu công ty vẫn trong lịch sử Git (xem `TECH_DEBT.md` TD-11).
 > **Δ (khuya):** DB đa-tab raw 10–19 + `40_FACT_CostLines` (QĐ-43). **GAS tự dựng fact TỪ raw** (QĐ-44, `Transform.gs::rebuildFact`, thay Power Query) — Web App đã deploy, chạy thật courier+overhead. Đổi tên tab fact `fact_CostLines`→`40_FACT_CostLines`. Nút Đồng bộ web.
 > **Δ (khuya-3):** **Phase A** port PQ (trích 22 query M gốc) — staging đủ **6 nguồn** (VVMV/Dolphin/EI + courier), tầng chung USD/Mode/Import-Export; Route/Loại hàng đang làm. Plan **Logistics record** (QĐ-45..50) `PLAN_LOGISTICS_RECORD.md`. **Chưa validate** bản 6 nguồn. Handover: `SESSION_HANDOVER.md`; việc kế tiếp: `TODO_NEXT.md`.
 > **Δ 2026-07-25 (v0.3.0):** Hoàn tất **Phase A** (Route ×3 + Loại hàng ×2 + UpdateManual + POB trong `Transform.gs`; `report_` tách Full/POB) và **Phase B** (trang **Logistics record**: `report.js` lr*, `views.js`, `app.js` 2 chart, `?action=pob`). **QĐ-51** POB không vào Full của 3 trang cũ (áp cả `getMeta.totalUsd`=Full, `pobUsd` riêng). Test `test/run_tests.cjs` **49/49 PASS** + xác minh trình duyệt (EVD). Sửa `Setup.gs` chịu lỗi "cột đã nhập" (bỏ format tab đã có data). **ĐÃ DEPLOY LIVE v0.3.0** — xác minh endpoint thật: `meta` 1454 dòng/$43.322,6 Full, **Route ×3 chạy đúng** (routes thật AGIGA/FORD/PURE/MRO…), `?action=pob` sống (sheet 18 rỗng). ⚠️ **Cần đối chiếu** tổng lệch baseline ($43.322,6/1454 vs $44.062/1480 — nghi tỷ giá 26452 + snapshot raw); dán data POB sheet 18.
+> **Δ 2026-07-28:** Nâng cấp `report_` (Transform.gs) — log **USD theo từng nguồn** + phơi **dòng bị filter `Amount=0`** (`<N> dòng · $<USD> (raw <M>, bỏ <K>)`), qua nhãn `_src` (không ghi vào fact). Mục đích: **tách bạch** lỗi tỷ giá (①, $ đồng đều) vs mất dòng (②, −26 dòng) khi đối chiếu baseline. Test **50/50 PASS**. Chờ user redeploy + rebuildFact để đọc bảng per-source.
 
 ## Trạng thái tổng thể
 

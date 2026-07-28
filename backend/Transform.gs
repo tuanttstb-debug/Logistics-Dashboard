@@ -70,10 +70,12 @@ function rebuildFact() {
   STAGES.forEach(function (st) {
     var n0 = raw.length;
     buildStaging_(ss, st, maps.cost, month, raw, qc);
+    for (var i = n0; i < raw.length; i++) raw[i]._src = st.forwarder; // nhãn nguồn cho report per-source
     qc.perSource[st.forwarder] = raw.length - n0;
   });
   var nOv = raw.length;
   stageOverhead_(ss, '19_Overhead_Raw', maps.cost, month, raw, qc);
+  for (var k = nOv; k < raw.length; k++) raw[k]._src = 'Overhead';
   qc.perSource['Overhead'] = raw.length - nOv;
 
   // Tầng chung (Full logistics — không gồm POB)
@@ -87,7 +89,7 @@ function rebuildFact() {
 
   // POB (QĐ-48/50): sheet 18 → nhãn Import/Export='Pay on behalf', VND→USD tỷ giá tháng
   var pob = stagePOB_(ss, month, rate);
-  pob.forEach(function (p) { fact.push(p); });
+  pob.forEach(function (p) { p._src = 'POB (Pay on behalf)'; fact.push(p); });
   qc.perSource['POB (Pay on behalf)'] = pob.length;
 
   writeFact_(ss, fact);
@@ -521,11 +523,15 @@ function num_(v) {
 
 function report_(month, rate, fact, qc, fullCount) {
   var full = 0, pob = 0, nRoute = 0, nLH = 0;
+  var usdBySrc = {}, cntBySrc = {}; // đối chiếu per-source: tách tỷ giá (đồng đều) vs mất dòng (cục bộ)
   fact.forEach(function (o) {
     if (o['Import/Export'] === 'Pay on behalf') pob += (o.Amount_USD || 0);
     else full += (o.Amount_USD || 0);
     if (o.Route) nRoute++;
     if (o['Loại hàng']) nLH++;
+    var s = o._src || o.Forwarder || '?';
+    usdBySrc[s] = (usdBySrc[s] || 0) + (o.Amount_USD || 0);
+    cntBySrc[s] = (cntBySrc[s] || 0) + 1;
   });
   var r2 = function (n) { return Math.round(n * 100) / 100; };
   var nPob = fact.length - (fullCount == null ? fact.length : fullCount);
@@ -533,8 +539,13 @@ function report_(month, rate, fact, qc, fullCount) {
     'Full (không POB): ' + (fullCount == null ? fact.length : fullCount) + ' dòng · $' + r2(full),
     'POB: ' + nPob + ' dòng · $' + r2(pob),
     'TỔNG (Full+POB): ' + fact.length + ' dòng · $' + r2(full + pob),
-    'Route có giá trị: ' + nRoute + ' · Loại hàng có giá trị: ' + nLH];
-  Object.keys(qc.perSource).forEach(function (f) { lines.push('  · ' + f + ': ' + qc.perSource[f]); });
+    'Route có giá trị: ' + nRoute + ' · Loại hàng có giá trị: ' + nLH,
+    '── Theo nguồn (dòng · USD) ──'];
+  Object.keys(qc.perSource).forEach(function (f) {
+    var rawN = qc.perSource[f], fc = cntBySrc[f] || 0, drop = rawN - fc;
+    lines.push('  · ' + f + ': ' + fc + ' dòng · $' + r2(usdBySrc[f] || 0) +
+      (drop > 0 ? ' (raw ' + rawN + ', bỏ ' + drop + ' dòng Amount=0)' : ''));
+  });
   var un = Object.keys(qc.unmapped);
   if (un.length) lines.push('⚠️ Phí CHƯA map (' + un.length + '): ' + un.join('; '));
   var msg = lines.join('\n'); Logger.log(msg); return msg;
