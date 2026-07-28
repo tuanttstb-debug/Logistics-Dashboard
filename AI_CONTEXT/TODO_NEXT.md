@@ -29,9 +29,7 @@
 - [x] **Route ×3 + Loại hàng ×2 + UpdateManual + POB** trong `Transform.gs` (2026-07-25). Test 46/46 PASS (`test/run_tests.cjs`, EVD).
 - [x] Sửa `Setup.gs` chịu lỗi **"cột đã nhập"** (bỏ ép Plain text trên tab đã có data / Table). `setupSheets` **PASS**.
 - [x] **Người dùng:** dán `backend/*.gs` mới → `rebuildFact()` → **Deploy New version** (link giữ nguyên). GAS live **v0.3.0**; Route ×3 chạy đúng trên data thật.
-- [ ] ⚠️ **Đối chiếu tổng lệch baseline:** live `?action=meta` = **1454 dòng/$43.322,6** (Full) vs Excel **1480/$44.062**. **Công cụ (2026-07-28):** `report_` nay log **$ theo từng nguồn** + số **dòng bỏ do `Amount=0`**. Sau redeploy + `rebuildFact`, đọc bảng "Theo nguồn" trong Logger:
-  - **① Tỷ giá:** tính `live_$/excel_$` mỗi nguồn non-EI — đồng đều → thuần tỷ giá (`26452/rate_Excel`, dự đoán rate ~26008); EI (rate per-row) là mốc ≈1,0.
-  - **② −26 dòng:** cộng cột "bỏ K dòng Amount=0"; ≈26 → thủ phạm filter `Transform.gs:82` (quyết fact Excel có giữ dòng 0đ?); nhỏ hơn → phần còn lại do snapshot raw ≠ Excel.
+- [x] ✅ **Đối chiếu tổng lệch baseline — XONG (2026-07-28).** Live `rebuildFact` = **1479 dòng/$44,062.16** vs Excel **1480/$44.062** → **tiền khớp đến cent**. Thủ phạm = **cột VAT `14_VVMV_Raw` mất data khi dán** (text `-`→`num_`null→GAS bỏ); user dán lại → VVMV 909→934 (+19 VAT/+$739.57). **Tỷ giá 26452 ĐÚNG** (4 nguồn khớp $ đã chứng minh, KHÔNG sửa). Lệch −1 dòng = `Báo cáo quyết toán` amount trống ($0) → **chấp nhận** (mang $0, ép giữ sẽ phá luật loại 123 dòng $0 FedEx). ⚠️ **KHÔNG** thêm `Lệ phí hải quan` ($232.50) vào sheet 19 — đã tính trong cột debit `Infrastructure fee, lphq`, thêm là double-count ($44,294.67).
 - [ ] **POB:** dán data vào `18_ImportPOB_Raw` → `rebuildFact` → kiểm `?action=pob` + POB detail trên web (nay sheet 18 rỗng → count 0).
 - [ ] (Cosmetic) mã dài hiện scientific ở tab raw đã thành Table → **Convert to range** rồi Format → Số → Văn bản thuần. (VVMV 936/$27.056 · Dolphin 29/$2.195 · EI 37/$2.105 · DHL 23/$1.398 · FedExExp 25/$585 · FedExImp 429/$9.891 · Overhead 4/$1.066) + dòng **POB** riêng; kiểm log "Route/Loại hàng có giá trị" > 0. Lệch → soi QC.
 

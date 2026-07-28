@@ -2,6 +2,17 @@
 
 > Mới nhất trên cùng. Mỗi phiên một block. Chỉ ghi delta của phiên.
 
+## 2026-07-28 (chốt) — ✅ BASELINE KHỚP: $44,062.16 (tỷ giá đúng, thủ phạm = VAT mất khi dán)
+
+- **✅ Task completed — đóng lệch baseline.** Sau khi user dán lại cột VAT của VVMV: `rebuildFact` live = **1479 dòng · $44,062.16** vs Excel **1480 / $44,062** → **tiền khớp đến từng cent**. Hành trình chẩn đoán per-source đã xác định:
+  1. **Tỷ giá 26452 ĐÚNG** (bác bỏ nghi vấn ~26008 ban đầu) — 4 nguồn (DHL/FedExImp/FedExExp/EI) khớp $ khít ở rate này chứng minh.
+  2. **Thủ phạm = cột VAT của `14_VVMV_Raw` mất dữ liệu khi dán** (text `-` thay vì số → `num_`→null → GAS bỏ; Excel giữ số). User dán lại đúng → VVMV **909→934 dòng** (+19 VAT · +$739.57), khớp debit Excel (934).
+  3. **Nghịch lý −6 (pipeline 909 vs diag 915) TỰ TAN** — nay pipeline = diag = 934. **Không có bug `readSheetObjects_`**; chênh 6 là do state VAT dở dang giữa 2 lần chạy.
+- **🧭 Decision — chấp nhận baseline 1479 (không ép 1480):** dòng lệch duy nhất = `Báo cáo quyết toán` (overhead VVMV, **amount trống → $0**); GAS bỏ dòng không tiền (line 82/158). Ép giữ nó sẽ phá luật đang loại đúng 123 dòng $0 của FedEx. Lệch mang **$0** → chấp nhận, tiền tài chính đã đúng 100%.
+- **📁 Files changed:** gỡ hàm chẩn đoán tạm `diagVVMV` khỏi `backend/Transform.gs` (+ menu) — đã xong việc; giữ nâng cấp `report_` per-source $. Test **50/50 PASS**. EVD regen. Docs.
+- **⚠️ QUAN TRỌNG — KHÔNG thêm `Lệ phí hải quan` (6.150.000/$232.50) vào `19_Overhead_Raw`:** tiền đã khớp $44,062.16 mà Overhead vẫn 3 dòng → $232.50 đó **đã tính rồi** (qua cột `Infrastructure fee, lphq` trong debit VVMV). Thêm nữa → **double-count $44,294.67**. Để yên sheet 19.
+- **➡️ Next step:** baseline xong. Còn: (1) dán data POB vào `18_ImportPOB_Raw` → rebuildFact → kiểm `?action=pob`; (2) mở web trên data thật kiểm trang Logistics record; (3) nợ bảo mật TD-11.
+
 ## 2026-07-28 — Công cụ chẩn đoán lệch baseline: report_ log $ theo nguồn
 
 - **✅ Task completed:**
