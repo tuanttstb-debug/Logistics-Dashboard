@@ -16,9 +16,9 @@
 Engine dữ liệu (Excel)   ████████████████████ 100%  ✅ nay là THAM CHIẾU logic (PQ port sang GAS)
 Context + kiến trúc web  ████████████████████ 100%  ✅
 UI/Dashboard thật        ██████████████████░░  ~90%  ✅ Chặng 2 (+ nút Đồng bộ)
-GAS pipeline (rebuildFact)███████████████████░  ~95%  🟢 7 nguồn + Route ×3 + Loại hàng ×2 + POB (code xong, test 46/46; chờ user chạy thật)
-Logistics record (mới)   ██████████████████░░   90%  🟢 Phase A+B code xong + test; chờ deploy New version cho ?action=pob
-Git repo                 ████████████████████ 100%  ✅ push (HEAD d6c03fe)
+GAS pipeline (rebuildFact)████████████████████ 100%  ✅ 7 nguồn + Route ×3 + Loại hàng ×2 + POB; live ✅ BASELINE KHỚP $44,062.16 (test 50/50)
+Logistics record (mới)   ██████████████████░░   90%  🟢 Phase A+B code xong + test; live ?action=pob sống (chờ dán data POB sheet 18)
+Git repo                 ████████████████████ 100%  ✅ push (HEAD 7752ea3)
 ```
 
 **Chặng 2 đã hiện thực (2026-07-22):** 4 trang — Dashboard (KPI + so sánh kỳ + 3 biểu đồ Chart.js) · Báo cáo CEO theo forwarder (Import/Export/Overhead/Third party, freight tách Air/Sea) · Theo Route · Giới thiệu. Chọn tháng, dark mode. Chạy được trên **dữ liệu mẫu** (`assets/js/mock-data.js`); logic đã smoke-test khớp tổng.

@@ -10,8 +10,11 @@
   3. **Nghịch lý −6 (pipeline 909 vs diag 915) TỰ TAN** — nay pipeline = diag = 934. **Không có bug `readSheetObjects_`**; chênh 6 là do state VAT dở dang giữa 2 lần chạy.
 - **🧭 Decision — chấp nhận baseline 1479 (không ép 1480):** dòng lệch duy nhất = `Báo cáo quyết toán` (overhead VVMV, **amount trống → $0**); GAS bỏ dòng không tiền (line 82/158). Ép giữ nó sẽ phá luật đang loại đúng 123 dòng $0 của FedEx. Lệch mang **$0** → chấp nhận, tiền tài chính đã đúng 100%.
 - **📁 Files changed:** gỡ hàm chẩn đoán tạm `diagVVMV` khỏi `backend/Transform.gs` (+ menu) — đã xong việc; giữ nâng cấp `report_` per-source $. Test **50/50 PASS**. EVD regen. Docs.
-- **⚠️ QUAN TRỌNG — KHÔNG thêm `Lệ phí hải quan` (6.150.000/$232.50) vào `19_Overhead_Raw`:** tiền đã khớp $44,062.16 mà Overhead vẫn 3 dòng → $232.50 đó **đã tính rồi** (qua cột `Infrastructure fee, lphq` trong debit VVMV). Thêm nữa → **double-count $44,294.67**. Để yên sheet 19.
-- **➡️ Next step:** baseline xong. Còn: (1) dán data POB vào `18_ImportPOB_Raw` → rebuildFact → kiểm `?action=pob`; (2) mở web trên data thật kiểm trang Logistics record; (3) nợ bảo mật TD-11.
+- **🚧 Blocker / lưu ý:**
+  - **⚠️ KHÔNG thêm `Lệ phí hải quan` (6.150.000/$232.50) vào `19_Overhead_Raw`:** tiền đã khớp $44,062.16 mà Overhead vẫn 3 dòng → $232.50 **đã tính rồi** (qua cột `Infrastructure fee, lphq` trong debit VVMV). Thêm nữa → **double-count $44,294.67**. Để yên sheet 19.
+  - **TD-24 (dán data):** cột số dạng kế toán `-` bị `num_`→null khi dán Excel→Sheets (chính là lỗi VAT vừa rồi). Mỗi lần dán raw phải bảo đảm cột số ra **số thật**.
+- **➡️ Next step:** baseline xong. Còn: (1) dán data POB vào `18_ImportPOB_Raw` → rebuildFact → kiểm `?action=pob` (TD-22); (2) mở web trên data thật kiểm trang Logistics record; (3) 🔴 nợ bảo mật TD-11.
+- **⚠️ Regression risk:** thấp. Chỉ **gỡ** `diagVVMV` (hàm read-only, không nhánh nào gọi) + xóa 1 menu item; `report_`/`rebuildFact` logic **không đổi** so bản đã chạy ra $44,062.16. Test 50/50 PASS. Không đụng frontend/pipeline số liệu.
 
 ## 2026-07-28 — Công cụ chẩn đoán lệch baseline: report_ log $ theo nguồn
 

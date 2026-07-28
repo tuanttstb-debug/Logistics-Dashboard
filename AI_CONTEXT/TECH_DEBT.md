@@ -1,6 +1,6 @@
 # TECH DEBT — Logistics Cost Dashboard
 
-> Nợ kỹ thuật đã biết. Delta phiên **2026-07-25** (Phase A+B: Route/Loại hàng/POB + trang Logistics record).
+> Nợ kỹ thuật đã biết. Delta phiên **2026-07-28** (chốt baseline: ✅ TD-21 resolved; thêm công cụ report_ per-source $).
 
 | ID | Nợ | Ảnh hưởng | Xử lý |
 |---|---|---|---|
@@ -9,7 +9,9 @@
 | **TD-17** | **Ground truth `pq_section1.m` KHÔNG còn local** (gitignored + đã xóa) | Sửa Route/Loại hàng dựa `11_BUSINESS_RULES.md §6/§7/§9` + header `Setup.gs`; nếu mã M gốc lệch doc → không có M để đối chiếu | Nếu nghi ngờ, trích lại từ DataMashup của `Logistics_System.xlsx` |
 | **TD-18** | **POB nằm TRONG `40_FACT_CostLines`** (nhãn `Pay on behalf`) → tổng MỌI dòng fact > baseline $44.062 | "Full" chỉ đúng nhờ lọc ở tầng JS (QĐ-51) + `getMeta.totalUsd` (đã sửa loại POB). Ai tự sum fact thô sẽ gồm POB | Luôn lọc `Import/Export='Pay on behalf'` khi cần Full; dùng `getMeta` (totalUsd=Full, pobUsd riêng) |
 | ~~TD-19~~ | ~~Code GAS mới chưa chạy trên Sheets thật~~ | — | ✅ Đã dán + `rebuildFact()` + **Deploy New version** (2026-07-25). Live v0.3.0; xác minh `ping`/`meta`/`pob` thật. Route ×3 chạy đúng (routes thật) |
-| **TD-21** | ⚠️ **Tổng live lệch baseline:** `?action=meta` = **1454 dòng/$43.322,6** (Full) vs Excel **1480/$44.062** (~−1,7% $, −26 dòng) | Con số CEO có thể lệch report tay; chưa rõ do rate hay data | Đối chiếu **log per-source** `rebuildFact` + **tỷ giá 23 (đang 26452)** (nghi Excel dùng rate thấp hơn → phần $ khớp); soi −26 dòng do raw snapshot khác |
+| ~~TD-21~~ | ✅ **GIẢI QUYẾT (2026-07-28):** baseline KHỚP — `rebuildFact` = **1479 dòng/$44,062.16** vs Excel 1480/$44.062 (tiền khớp đến cent) | — | Thủ phạm = **cột VAT `14_VVMV_Raw` mất data khi dán** (text `-`→`num_`null→bỏ); user dán lại → VVMV 909→934 (+$739.57). **Tỷ giá 26452 ĐÚNG** (4 nguồn khớp $ chứng minh). Lệch −1 dòng = `Báo cáo quyết toán` $0 → chấp nhận. Sinh TD-23/TD-24 |
+| **TD-23** | **GAS bỏ dòng fact amount trống/`Amount=0`** (Transform.gs:82,158) → live 1479 vs Excel 1480 (1 dòng overhead VVMV `Báo cáo quyết toán` $0) | Số dòng lệch 1 so Excel; **tiền không đổi** ($0) | Chấp nhận (QĐ). Ép giữ dòng $0-overhead sẽ phá luật loại đúng 123 dòng $0-debit FedEx — không đáng cho 1 dòng $0 |
+| **TD-24** | **Cột VAT/số dạng kế toán `-` bị `num_`→null** (mất khi dán Excel→Sheets) | Nếu nguồn khác cũng có cột `-`/công thức, dán sai → mất dòng+tiền âm thầm | Khi dán raw: đảm bảo cột số ra **số thật** (Paste values, convert `-`→0). Có thể vá `num_` coi `-`=0 nếu tái diễn |
 | **TD-22** | **Sheet `18_ImportPOB_Raw` rỗng** → `pobCount=0`, POB detail trống | Chức năng POB đã deploy nhưng chưa có dữ liệu để hiện | Dán data POB vào sheet 18 → chạy lại `rebuildFact` |
 | **TD-20** | **Test dùng Spreadsheet GIẢ** (`test/run_tests.cjs`, fixtures) — 49/49 PASS | Chứng minh LOGIC, không chạy trên GAS/dữ liệu thật → lệch header/tên cột thật chưa lộ | Đối chiếu log `rebuildFact` thật (Full≈$44.062 + POB) |
 | **TD-12** | 🔴 **Web App "Anyone"** + URL trong repo → ai có link đọc được cost thật (shipper/consignee/số tiền) | Lộ dữ liệu tài chính | Đổi repo Private + cân nhắc phân quyền GAS (TD-10) trước khi dùng rộng |
