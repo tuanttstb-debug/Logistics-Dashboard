@@ -2,10 +2,13 @@
 
 > Việc kế tiếp theo ưu tiên. Delta phiên 2026-07-22. Checklist ngắn ở `TODO.md`.
 
-## 🔴 Ưu tiên 0 — BẢO MẬT lịch sử data (MỚI)
-- [ ] Đổi repo sang **Private** (GitHub → Settings → Danger Zone) — làm ngay.
-- [ ] Quyết có **rewrite history + force-push** để xóa `data/` khỏi mọi commit (`8b008e6`, `d26e33a`) không. Xem `TECH_DEBT.md` TD-11.
-- [x] Gỡ `data/` khỏi tracking + `.gitignore` (push `ba780e2`) — chỉ hết ở bản mới, **chưa** hết lịch sử.
+## 🔴 Ưu tiên 0 — BẢO MẬT lịch sử data
+- [x] **Rewrite history + force-push (2026-08-06):** `git filter-repo` xóa `data/` (**4 file**) khỏi **toàn bộ 25 commit** + redact deployment-ID GAS (`env.js`→`REDACTED-ROTATED`). Force-push `75cab6a`→`9220231`. Verify history sạch. Backup bundle ở scratchpad. Xem `TECH_DEBT.md` TD-11 (resolved).
+- [x] Gỡ `data/` khỏi tracking + `.gitignore` (push `ba780e2`) — nay lịch sử cũng đã sạch.
+- [ ] 🔴 **[USER] Đổi repo sang Private** (GitHub → Settings → Danger Zone) — repo còn Public suốt lúc rewrite.
+- [ ] 🔴 **[USER] Rotate endpoint GAS:** redeploy *New deployment* (URL `/exec` mới) + đổi quyền khỏi "Anyone" → gửi URL mới để dán lại `env.js` + commit (app nay chưa đọc data thật).
+- [ ] 🔴 **[USER] GitHub Support:** yêu cầu purge **cached commits** (`8b008e6`, `d26e33a`) + gỡ mọi **fork** (force-push không xóa cache; repo từng public → giả định đã lộ).
+- [ ] **[USER] Re-clone** mọi bản sao khác (toàn bộ SHA đã đổi).
 
 ## ✅ Ưu tiên 1 — Git (XONG)
 - [x] `git init` + push `origin/main`. Dọn clone rỗng lồng nhau.

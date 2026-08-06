@@ -2,6 +2,20 @@
 
 > Mới nhất trên cùng. Mỗi phiên một block. Chỉ ghi delta của phiên.
 
+## 2026-08-06 — 🔒 BẢO MẬT: rewrite lịch sử Git xóa `data/` (TD-11) + redact URL GAS (TD-12)
+
+- **✅ Task completed — purge dữ liệu công ty khỏi lịch sử Git.**
+  - **Đo phơi nhiễm thực:** lịch sử chứa **4 file** nhạy cảm (không phải "2 xlsx" như doc cũ): `8b008e6` = `data/Logistics_System.xlsx` + `data/_source/Project_Handover_Goc_1-18.md` + `..._PhuLuc_19-23.md`; `d26e33a` = `data/Logistics record JUN 2026.xlsx`. **Thêm** endpoint sống lộ trong HEAD: `config/env.js:10` hardcode URL Web App GAS deploy "Anyone" (credential sống → curl ra cost thật).
+  - **Rewrite:** `git filter-repo` (`--invert-paths --path data/ --replace-text`) xóa `data/` khỏi **toàn bộ 25 commit** + redact deployment-ID GAS (`env.js`→`REDACTED-ROTATED`). **Force-push** `75cab6a`→`9220231`. Verify: history sạch (0 file `data/`, 0 deployment-ID). Backup bundle full ở scratchpad; 4 file gốc vẫn trên đĩa (gitignored).
+- **📁 Files changed:** git history (rewrite toàn bộ SHA); `config/env.js` (URL→REDACTED, qua filter-repo); `AI_CONTEXT/TECH_DEBT.md` (TD-11 resolved, TD-12 đang xử lý).
+- **🧭 Decision:** repo TỪNG public → **giả định dữ liệu đã lộ**; rewrite chỉ dọn ref, không thu hồi được thứ đã cache/fork. Cách an toàn cho endpoint = **rotate** (redeploy), không dựa vào che URL.
+- **🚧 Blocker / cần user:**
+  - ⚠️ **Repo còn Public** khi rewrite — GitHub còn **cache SHA cũ** (`8b008e6`, `d26e33a`) truy cập trực tiếp tới khi GC. **User phải:** (1) đổi repo **Private** ngay; (2) **GitHub Support** yêu cầu purge cached commits + gỡ fork.
+  - ⚠️ **env.js hiện `REDACTED-ROTATED`** → app không đọc được data thật cho tới khi **user rotate GAS (redeploy URL mới) + gửi URL mới** để dán lại. USE_MOCK vẫn `false`.
+  - Mọi clone hiện có phải **re-clone** (SHA đổi hết).
+- **➡️ Next step:** (1) user xác nhận Private + rotate GAS → gửi URL mới → dán `env.js` + commit; (2) GitHub Support purge cache; (3) quay lại TD-22 (dán data POB sheet 18) khi bảo mật xong.
+- **⚠️ Regression risk:** thấp về code (chỉ đổi 1 dòng URL env.js); **cao về vận hành** — force-push không đảo ngược, mọi SHA đổi. Backup bundle giữ được toàn bộ lịch sử cũ nếu cần khôi phục.
+
 ## 2026-07-28 (chốt) — ✅ BASELINE KHỚP: $44,062.16 (tỷ giá đúng, thủ phạm = VAT mất khi dán)
 
 - **✅ Task completed — đóng lệch baseline.** Sau khi user dán lại cột VAT của VVMV: `rebuildFact` live = **1479 dòng · $44,062.16** vs Excel **1480 / $44,062** → **tiền khớp đến từng cent**. Hành trình chẩn đoán per-source đã xác định:

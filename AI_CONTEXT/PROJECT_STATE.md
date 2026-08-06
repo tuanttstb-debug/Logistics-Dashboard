@@ -9,6 +9,7 @@
 > **Δ 2026-07-25 (v0.3.0):** Hoàn tất **Phase A** (Route ×3 + Loại hàng ×2 + UpdateManual + POB trong `Transform.gs`; `report_` tách Full/POB) và **Phase B** (trang **Logistics record**: `report.js` lr*, `views.js`, `app.js` 2 chart, `?action=pob`). **QĐ-51** POB không vào Full của 3 trang cũ (áp cả `getMeta.totalUsd`=Full, `pobUsd` riêng). Test `test/run_tests.cjs` **49/49 PASS** + xác minh trình duyệt (EVD). Sửa `Setup.gs` chịu lỗi "cột đã nhập" (bỏ format tab đã có data). **ĐÃ DEPLOY LIVE v0.3.0** — xác minh endpoint thật: `meta` 1454 dòng/$43.322,6 Full, **Route ×3 chạy đúng** (routes thật AGIGA/FORD/PURE/MRO…), `?action=pob` sống (sheet 18 rỗng). ⚠️ **Cần đối chiếu** tổng lệch baseline ($43.322,6/1454 vs $44.062/1480 — nghi tỷ giá 26452 + snapshot raw); dán data POB sheet 18.
 > **Δ 2026-07-28:** Nâng cấp `report_` (Transform.gs) — log **USD theo từng nguồn** + phơi **dòng bị filter `Amount=0`** (`<N> dòng · $<USD> (raw <M>, bỏ <K>)`), qua nhãn `_src` (không ghi vào fact). Mục đích: **tách bạch** lỗi tỷ giá (①, $ đồng đều) vs mất dòng (②, −26 dòng) khi đối chiếu baseline. Test **50/50 PASS**.
 > **Δ 2026-07-28 (chốt) — ✅ BASELINE KHỚP:** live `rebuildFact` = **1479 dòng · $44,062.16** vs Excel **1480/$44,062** → **tiền khớp đến cent**. Thủ phạm = **cột VAT `14_VVMV_Raw` mất data khi dán** (text `-`→null); user dán lại → VVMV 909→934 (+$739.57). **Tỷ giá 26452 ĐÚNG** (đã xác minh, không sửa). Lệch −1 dòng = `Báo cáo quyết toán` amount trống ($0) → chấp nhận. **KHÔNG** thêm `Lệ phí hải quan` vào sheet 19 (đã tính trong debit, thêm là double-count). Gỡ hàm chẩn đoán tạm `diagVVMV`.
+> **Δ 2026-08-06 — 🔒 BẢO MẬT (TD-11/TD-12):** rewrite lịch sử Git (`git filter-repo`) xóa `data/` (**4 file:** 2 xlsx + 2 handover `.md`) khỏi **toàn bộ 25 commit** + redact deployment-ID GAS (`env.js`→`REDACTED-ROTATED`) + **force-push** `75cab6a`→`9220231`. History sạch (verify: 0 `data/`, 0 URL). **TD-11 resolved** ở lịch sử; **dư nợ:** repo TỪNG public → GitHub cache SHA cũ (`8b008e6`,`d26e33a`) → cần **Private** + **GitHub Support** purge. `env.js` REDACTED + `USE_MOCK:false` → **app chưa đọc data thật** cho tới khi user **rotate GAS** gửi URL mới.
 
 ## Trạng thái tổng thể
 
@@ -18,7 +19,7 @@ Context + kiến trúc web  █████████████████�
 UI/Dashboard thật        ██████████████████░░  ~90%  ✅ Chặng 2 (+ nút Đồng bộ)
 GAS pipeline (rebuildFact)████████████████████ 100%  ✅ 7 nguồn + Route ×3 + Loại hàng ×2 + POB; live ✅ BASELINE KHỚP $44,062.16 (test 50/50)
 Logistics record (mới)   ██████████████████░░   90%  🟢 Phase A+B code xong + test; live ?action=pob sống (chờ dán data POB sheet 18)
-Git repo                 ████████████████████ 100%  ✅ push (HEAD 7752ea3)
+Git repo                 ████████████████████ 100%  ✅ push; 🔒 lịch sử rewrite 2026-08-06 xóa data/ (HEAD 9220231→)
 ```
 
 **Chặng 2 đã hiện thực (2026-07-22):** 4 trang — Dashboard (KPI + so sánh kỳ + 3 biểu đồ Chart.js) · Báo cáo CEO theo forwarder (Import/Export/Overhead/Third party, freight tách Air/Sea) · Theo Route · Giới thiệu. Chọn tháng, dark mode. Chạy được trên **dữ liệu mẫu** (`assets/js/mock-data.js`); logic đã smoke-test khớp tổng.
@@ -32,6 +33,7 @@ Git repo                 ██████████████████�
 
 ## Đang chặn / còn lại
 
+- 🔴 **BẢO MẬT (chờ user):** repo còn **Public** khi rewrite → đổi **Private** ngay + **GitHub Support** purge cache SHA cũ. **Rotate GAS** (redeploy URL mới) → gửi URL để dán lại `env.js` (nay REDACTED, app chưa đọc data thật).
 - **Dữ liệu thật** 🟡 GAS Web App đã deploy + `GS_WEBAPP_URL` đã dán (`USE_MOCK:false`), ping OK. Còn: chạy `setupSheets()` tạo tab + dán A:X. Xem `SESSION_HANDOVER` khuya 2026-07-22.
 - Chưa xác minh trực quan trên trình duyệt thật (mới smoke-test logic + syntax).
 - Web-Q còn mở: Q-W01 (CORS/host), Q-W04 (đọc tất cả/từng tháng), Q-W05 (số dòng/tháng).
