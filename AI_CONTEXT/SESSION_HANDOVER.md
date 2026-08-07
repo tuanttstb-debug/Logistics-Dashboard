@@ -2,6 +2,43 @@
 
 > Mới nhất trên cùng. Mỗi phiên một block. Chỉ ghi delta của phiên.
 
+## 2026-08-07 (CHỐT PHIÊN) — Tổng kết phiên (3 việc; chi tiết ở 3 block dưới)
+
+- **✅ Task completed:**
+  1. **Khôi phục data thật** — user rotate GAS, đã dán URL mới `config/env.js`, verify live (ping/meta/facts/pob). *(đã commit `e558271`)*
+  2. **Overhead safety-net** — `stageOverhead_` mặc định `FWD='Overhead FWD'` + `Standard Cost`=tên gốc cho khoản CHƯA map (sheet 19 = kho overhead) → khoản overhead thêm tay (Evergreen) không bị loại khỏi khối. Chốt root cause qua PQ gốc. Test **55/55 PASS**.
+  3. **Đối chiếu Excel↔GAS** — lệch $659 = **DATA out-of-sync** (rate 26452 vs 26462 · DHL Sheets thiếu 4 lô · FedEx Import lệch amount · VVMV +1 dòng $0), KHÔNG phải bug code. User đồng bộ Sheets←Excel → **khớp cent $45.061,40 / 1495 dòng / rate 26462**.
+- **📁 Files changed:** `config/env.js` *(commit trước)*; `backend/Transform.gs` (stageOverhead_); `test/run_tests.cjs` (+fixture Evergreen +5 assert); docs `SESSION_HANDOVER`/`PROJECT_STATE`/`TODO_NEXT`/`TECH_DEBT`/`CHANGE_LOG`; EVD regen.
+- **🧭 Decision made:** (a) sheet 19 auto-phân loại Overhead cho khoản chưa map + đăng ký chuẩn ở `22_Map_Cost` (best-of-both); (b) **Excel là nguồn tham chiếu** → luôn đồng bộ Sheets←Excel (raw+rate) trước rebuildFact; (c) khi tổng Excel≠GAS → nghi DATA-sync TRƯỚC code.
+- **🚧 Blocker:** (1) **CẦN user chốt "sheet tiếp theo"** — POB(18) / 50_MERGE_SHIPMENT / 60_QC_Errors / 70_Dashboard (câu hỏi đang mở, chưa chọn); (2) POB(18) rỗng, cần user dán data (TD-22); (3) GAS còn "Anyone" (TD-10/TD-12), chờ GitHub Support purge cache SHA cũ; (4) chưa có SOP đồng bộ Excel→Sheets (TD-26).
+- **➡️ Next step:** user chọn track "sheet tiếp theo" → tôi triển khai. Song song: viết SOP đồng bộ (TD-26); POB khi có data.
+- **⚠️ Regression risk:** thấp — fix chỉ chạm dòng overhead CHƯA map (dòng đã map giữ nguyên); baseline re-match $45.061,40 khớp cent; test 55/55. Không đổi frontend/pipeline số liệu.
+
+## 2026-08-07 — ✅ Đối chiếu lại Excel↔GAS: lệch $659 = DATA out-of-sync (không phải bug code). Baseline mới $45.061,40
+
+- **✅ Task completed — truy ra & đóng lệch $659 (Excel $45.061,40 vs GAS $44.402,40).** Sau khi user đồng bộ lại raw + rate: GAS `?action=meta` = **1495 dòng · $45.061,40** = Excel `45061.39807` → **khớp đến cent**, `missingUsd 0`, `impExp` sạch (Evergreen phân loại đúng Overhead).
+- **🔎 Chẩn đoán (đọc Excel `40_FACT_CostLines` + so raw VND per-forwarder, rate-independent):** lệch $659 KHÔNG phải lỗi GAS — GAS xử lý ĐÚNG raw đang có trên Sheets; **Sheets đã lệch Excel** ở 3 chỗ:
+  1. **Tỷ giá:** Excel `23_Map_ExchangeRate` = **26462**, Sheets = **26452** → sai lệch ~$16 + toàn bộ chênh vài cent mọi nguồn VND. (EI khớp tuyệt đối vì dùng rate per-row, miễn nhiễm → chính là manh mối.)
+  2. **DHL: Sheets THIẾU 4 lô** (AWB `1848752496, 3270210414, 4448587290, 8056639732`) = 15 dòng phí / 21.670.860 VND / **~$818** (Excel có, Sheets chưa dán).
+  3. **FedEx Import: cùng 429 dòng nhưng lệch số tiền** — Sheets nhiều hơn Excel 3.809.554 VND (**~$144**) → vài dòng amount khác nhau.
+  - (VVMV +1 dòng = `Báo cáo quyết toán` $0 — TD-23, chấp nhận, $0.)
+- **🧭 Decision:** **Excel là nguồn tham chiếu** (owner refresh + QC hằng tháng) → đồng bộ **Sheets ← Excel** (dán lại raw + set rate). GAS đọc Sheets nên **mỗi lần Excel refresh phải đẩy lại raw 10–19 + rate 23 lên Sheets** rồi `rebuildFact` (nếu không, dashboard chạy trên data cũ mà KHÔNG có cảnh báo).
+- **📁 Files changed:** không đổi code (chẩn đoán read-only); chỉ cập nhật docs (handover/CHANGE_LOG/PROJECT_STATE/TECH_DEBT/TODO). Baseline mới: **1495 dòng / $45.061,40 / rate 26462**.
+- **🚧 Blocker / lưu ý:** **rate June đổi 26452→26462** (giá trị rate có thể trôi giữa các lần chốt — luôn giữ Sheets↔Excel bằng nhau). Cần **SOP đồng bộ** rõ để tránh tái diễn lệch “ảo”.
+- **➡️ Next step:** (1) (tùy) viết/ăn khớp SOP đẩy Excel→Sheets (raw 10–19 + rate 23 + map) trước rebuildFact; (2) commit+push (code overhead safety-net + test + docs phiên này) — chờ user OK; (3) TD-22 POB sheet 18.
+- **⚠️ Regression risk:** không có (không đổi code). Bài học: khi tổng Excel≠GAS, **nghi DATA-sync (rate/raw) TRƯỚC khi nghi code** — GAS trung thành với raw trên Sheets.
+
+## 2026-08-07 — Overhead chưa map vẫn phân loại (safety-net) + chốt root cause PQ
+
+- **✅ Task completed — khoản overhead thêm tay (`Evergreen / Customs handling`) vẫn vào tổng + mọi khối.**
+  - **Root cause (ground truth `data/_source/pq_section1.m`):** `stg_Overhead` LeftOuter join `Map_Cost` → khoản không có trong Map_Cost thì `Standard Cost`/`FWD Column`=null; `Import/Export` (M:65) phân loại Overhead CHỈ khi `FWD Column="Overhead FWD"` → khoản chưa map rơi xuống null → bị loại khỏi khối Overhead. **Là thiết kế PQ, không phải bug GAS.** `Map_Cost` = bảng điều khiển.
+  - **Fix (safety-net):** `Transform.gs::stageOverhead_` mặc định `FWD='Overhead FWD'` + `Standard Cost`=tên gốc cho khoản overhead chưa map (sheet 19 = kho overhead). Verify live: Evergreen FWD='Overhead FWD', Import/Export='Overhead', Amount_USD=340.24, **0 dòng impExp null**. Test **55/55 PASS**.
+- **📁 Files changed:** `backend/Transform.gs` (stageOverhead_), `test/run_tests.cjs` (+fixture +5 assert), docs (CHANGE_LOG/handover/TECH_DEBT). EVD regen.
+- **🧭 Decision (user):** **Map_Cost + giữ safety-net** — user tự thêm dòng `Evergreen | Customs handling | <Standard Cost> | Overhead FWD` vào `22_Map_Cost` (clear warning, GAS≡PQ, chuẩn nhãn); GIỮ safety-net GAS cho khoản overhead tương lai quên đăng ký.
+- **🚧 Blocker / cần user:** thêm dòng vào `22_Map_Cost` trên Google Sheet (tôi không sửa Sheet được) → chạy lại `rebuildFact()`. (Tùy) thêm cùng dòng vào `Map_Cost` trong `Logistics_System.xlsx` để PQ tham chiếu khớp.
+- **➡️ Next step:** (1) user thêm Map_Cost row + rebuildFact → warning biến mất; (2) commit+push code+test+docs (chờ user OK); (3) TD-22 POB sheet 18.
+- **⚠️ Regression risk:** rất thấp — chỉ ảnh hưởng dòng overhead CHƯA map (trước bị loại khỏi khối, nay hiện đúng); dòng đã map giữ nguyên `m.fwd`/`m.std` → baseline $44.062,16 không đổi. Khoản Evergreen ($340,24) trước đã trong tổng, nay còn hiện ở khối Overhead.
+
 ## 2026-08-07 — ✅ Rotate GAS: dán URL mới vào env.js → khôi phục data thật
 
 - **✅ Task completed — user đã rotate endpoint GAS; dán URL mới lại `config/env.js`.**

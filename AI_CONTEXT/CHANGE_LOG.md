@@ -2,6 +2,41 @@
 
 > Ghi mọi thay đổi, mới nhất trên cùng.
 
+## 2026-08-07 — Đối chiếu Excel↔GAS: đóng lệch $659 (DATA out-of-sync) → baseline $45.061,40
+
+### Bối cảnh
+User dán Evergreen + cập nhật `22_Map_Cost`/`25_UpdateManual`/`19_Overhead_Raw`, thấy Excel $45.061,39807 ≠ GAS $44.402,40 (lệch **$659**). Yêu cầu tìm nội dung lệch.
+
+### Chẩn đoán (read-only; đọc Excel `40_FACT_CostLines` + so raw VND per-forwarder)
+- Lệch KHÔNG do code — GAS xử lý đúng raw đang có trên Sheets; **Sheets lệch Excel**:
+  1. **Rate:** Excel 26462 vs Sheets 26452 (~$16 + chênh cent mọi nguồn VND; EI khớp tuyệt đối vì rate per-row).
+  2. **DHL:** Sheets thiếu 4 lô (AWB 1848752496/3270210414/4448587290/8056639732) = 15 dòng / 21.670.860 VND / ~$818.
+  3. **FedEx Import:** cùng 429 dòng, Sheets nhiều hơn Excel 3.809.554 VND (~$144).
+  - VVMV +1 dòng = `Báo cáo quyết toán` $0 (TD-23).
+
+### Kết quả
+- User đồng bộ Sheets ← Excel (raw + rate) → `rebuildFact` → GAS `?action=meta` **1495 dòng · $45.061,40** = Excel (khớp cent), `missingUsd 0`, Evergreen phân loại Overhead đúng.
+- **Baseline mới:** 1495 dòng / **$45.061,40** / rate **26462**.
+- **Không đổi code.** Docs: handover/PROJECT_STATE/TECH_DEBT/TODO.
+
+## 2026-08-07 — Overhead: khoản CHƯA map vẫn phân loại Overhead (safety-net) + chốt root cause PQ
+
+### Bối cảnh
+User thêm tay dòng `Evergreen / Customs handling` vào `19_Overhead_Raw`. rebuildFact log `⚠️ Phí CHƯA map` và dòng bị loại khỏi các khối theo `Import/Export` (dashboard byIE / forwarderReport / lrOverhead) — dù VẪN vào tổng chung.
+
+### Root cause (đối chiếu ground truth `data/_source/pq_section1.m`)
+- `stg_Overhead` (M dòng 250–257): `19_Overhead_Raw` **LeftOuter join** `Map_Cost` → `Standard Cost`/`FWD Column` CHỈ từ join. Khoản không có trong Map_Cost → cả hai = **null**.
+- `Import/Export` (M dòng 65): `if [FWD Column]="Overhead FWD" then "Overhead" else …`. FWD null → KHÔNG là Overhead → rơi xuống null → bị loại khỏi khối Overhead.
+- ⇒ **Đây là thiết kế PQ, KHÔNG phải bug GAS.** `Map_Cost` là **bảng điều khiển**: khoản phí mới phải được đăng ký ở đó.
+
+### Thay đổi
+- **fix(gas):** `Transform.gs::stageOverhead_` — sheet 19 là KHO overhead nên khoản CHƯA map mặc định `FWD Column='Overhead FWD'` (→ `impExp_`→'Overhead', hiện đủ mọi khối + vào tổng nhất quán) và `Standard Cost`=tên gốc (nhãn có nghĩa). Cảnh báo `qc.unmapped` giữ làm FYI. **Safety-net**: GAS rộng lượng hơn PQ — khoản overhead quên đăng ký KHÔNG bị mất khỏi tổng.
+- **test:** `test/run_tests.cjs` — thêm fixture `Evergreen/Customs handling` (chưa map) + 5 assert (FWD default, Import/Export=Overhead, Standard Cost=tên gốc, Amount_USD vào tổng, vẫn cảnh báo). **55/55 PASS**.
+- **verify live:** `?action=facts` — Evergreen: FWD='Overhead FWD', Import/Export='Overhead', Amount_USD=340.24; **0 dòng Import/Export null**.
+
+### Root-cause fix (QĐ user: Map_Cost + giữ safety-net)
+- **[USER]** thêm dòng vào `22_Map_Cost`: `Evergreen | Customs handling | <Standard Cost> | Overhead FWD` → clear warning, GAS≡PQ, chuẩn hóa nhãn. Safety-net GAS vẫn giữ cho khoản tương lai.
+
 ## 2026-08-07 — Rotate GAS: dán URL mới vào env.js (khôi phục data thật)
 
 ### Thay đổi

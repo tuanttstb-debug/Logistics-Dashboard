@@ -1,0 +1,87 @@
+EVIDENCE — Logistics Dashboard Phase A+B
+Ngày: 2026-08-07T08:20:46.547Z
+Node: v24.16.0
+Phạm vi: Route ×3, Loại hàng ×2, POB (Transform.gs) + report.js lr* (Phase B)
+════════════════════════════════════════════
+
+[1] Backend — rebuildFact() end-to-end (Route ×3 + Loại hàng + POB + report split)
+  ✅ fact có 7 dòng (6 Full + 1 POB)
+  ✅ VVMV nhập: Route=PURE (winner-take-all)
+  ✅ VVMV nhập: Loại hàng=Material (E11)
+  ✅ VVMV nhập Customs: Amount_USD=20
+  ✅ VVMV xuất: Route=Ford (sheet 16, B/L=Tracking# qua bridge)
+  ✅ VVMV xuất: B/L=TRKEXP1 (bridge invoice)
+  ✅ VVMV xuất: Loại hàng=null (chỉ hàng nhập)
+  ✅ DHL cả 2 đầu ≠ VN: Import/Export=Third party
+  ✅ DHL Third party: Route=Other (tự động)
+  ✅ Overhead: Import/Export=Overhead
+  ✅ Overhead: Route=null (ép null)
+  ✅ Overhead chưa map: FWD Column mặc định "Overhead FWD"
+  ✅ Overhead chưa map: Import/Export=Overhead (không bị loại)
+  ✅ Overhead chưa map: Standard Cost mặc định = tên gốc
+  ✅ Overhead chưa map: Amount_USD=20 (500000/25000, vào tổng)
+  ✅ Overhead chưa map: vẫn cảnh báo qc.unmapped
+  ✅ POB: có nhãn Pay on behalf
+  ✅ POB: Amount_USD=10000 (VND/25000)
+  ✅ POB: Route=PURE (từ sheet 18)
+  ✅ report tách Full=6 dòng
+  ✅ report tách POB=1 dòng
+  ✅ report có $ theo nguồn (VVMV)
+  ✅ getMeta.totalUsd = Full (loại POB) = 302
+  ✅ getMeta.pobUsd = 10000
+  ✅ getMeta.grandTotalUsd = Full+POB = 10302
+  ── report ──
+     ✅ rebuildFact — tháng 2026-06 (rate 25000)
+     Full (không POB): 6 dòng · $302
+     POB: 1 dòng · $10000
+     TỔNG (Full+POB): 7 dòng · $10302
+     Route có giá trị: 5 · Loại hàng có giá trị: 2
+     ── Theo nguồn (dòng · USD) ──
+       · DHL: 1 dòng · $50
+       · FedEx Export: 0 dòng · $0
+       · FedEx Import: 0 dòng · $0
+       · Dolphin: 0 dòng · $0
+       · VVMV: 3 dòng · $192 (raw 4, bỏ 1 dòng Amount=0)
+       · EI: 0 dòng · $0
+       · Overhead: 2 dòng · $60
+       · POB (Pay on behalf): 1 dòng · $10000
+     ⚠️ Phí CHƯA map (1): Evergreen / Customs handling
+
+[2] Backend — unit: normRoute_ + reduceWTA_ tie-break + routeFor_ ưu tiên
+  ✅ normRoute_('Transfer')='Other'
+  ✅ normRoute_('x')=null
+  ✅ normRoute_('  ')=null
+  ✅ normRoute_('Ford')='Ford'
+  ✅ reduceWTA_ hòa qty → chọn Trị giá NT lớn hơn (B)
+  ✅ reduceWTA_ qty lớn hơn thắng (A)
+  ✅ routeFor_ UpdateManual thắng tất cả
+  ✅ routeFor_ Overhead → null
+  ✅ routeFor_ CDS trước BL
+  ✅ loaiHangFor_ hàng xuất → null
+
+[3] Frontend — report.js lr* (khử trùng trọng lượng + tách POB)
+  ✅ lrMonthlySeries Full excludes POB (100+20+200+300+40=660)
+  ✅ lrMonthlySeries POB=10000
+  ✅ lrMonthlySeries Total=Full+POB=10660
+  ✅ lrImport Raw materials subtotal=120
+  ✅ lrImport Raw materials weight KHỬ TRÙNG theo B/L = 120 (không 240)
+  ✅ lrImport Raw materials shipments=1
+  ✅ lrImport Raw materials declarations=1
+  ✅ lrImport Equipment subtotal=200
+  ✅ lrImport Subtotal Import=320
+  ✅ lrExport có dự án Ford
+  ✅ lrExport Ford subtotal=300
+  ✅ lrOverhead total=40
+  ✅ dashboard.total EXCLUDES POB (=660)
+
+[4] Frontend — views.js render Logistics record + POB table
+  ✅ Views.logisticsRecord không ném lỗi
+  ✅ HTML có canvas chartLRImport
+  ✅ HTML có canvas chartLRExport
+  ✅ HTML có mục Full logistics cost
+  ✅ HTML có SUBTOTAL IMPORT
+  ✅ HTML có #pobDetail placeholder
+  ✅ pobTable render dòng POB
+
+══════════════════════════════════════════
+KẾT QUẢ: 55 PASS · 0 FAIL

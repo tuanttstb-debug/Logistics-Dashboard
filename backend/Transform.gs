@@ -161,8 +161,14 @@ function stageOverhead_(ss, tab, costMap, month, out, qc) {
     if (!fwd || !name || amt === null) return;
     var m = costMap[key_(fwd, name)] || { std: null, fwd: null };
     if (!m.std) qc.unmapped[fwd + ' / ' + name] = 1;
+    // Sheet 19 = KHO chi phí overhead: MỌI dòng ở đây LÀ overhead. Khoản chưa map →
+    // mặc định FWD='Overhead FWD' (để impExp_→'Overhead' → hiện đủ ở dashboard byIE /
+    // forwarderReport / lrOverhead + vào tổng nhất quán, không bị loại) và Standard Cost=
+    // tên gốc (nhãn có nghĩa thay vì '(chưa map)'). Cảnh báo qc.unmapped vẫn giữ để user
+    // biết mà bổ sung 22_Map_Cost nếu muốn gộp nhãn chuẩn. → thêm khoản overhead mới chạy ngay.
     out.push({ Month: month, Forwarder: fwd, 'B/L': str_(r['B/L']) || null,
-      'Original Cost Name': name, Amount: amt, 'Standard Cost': m.std, 'FWD Column': m.fwd });
+      'Original Cost Name': name, Amount: amt,
+      'Standard Cost': m.std || name, 'FWD Column': m.fwd || 'Overhead FWD' });
   });
 }
 

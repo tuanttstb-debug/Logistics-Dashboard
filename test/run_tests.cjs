@@ -89,9 +89,10 @@ function buildSS() {
       ['INVOICE NO', 'DATE', 'AWB', 'SHIP DATE', 'SHIPPER', 'CONSIGNEE', 'ORIG', 'DEST', 'Zone', 'CHRGBL WGHT (KG)', 'NET CHARGE'], [
         ['INV-DHL-1', '', 'AWB777', '', 'ShpX', 'CneY', 'CN', 'JP', 'A', 30, 1250000],
       ]),
-    // Overhead
+    // Overhead — Gia Bảo (đã map) + Evergreen (CHƯA map → phải vẫn phân loại Overhead)
     '19_Overhead_Raw': sheet('19_Overhead_Raw', ['Forwarder', 'B/L', 'Original Cost Name', 'Amount (VND)'], [
       ['Gia Bảo', 'GB-1', 'Lifting fee', 1000000],
+      ['Evergreen', '', 'Customs handling', 500000],
     ]),
     // 16: bridge invoice→Tracking# + Route xuất
     '16_ExportMgmt_Raw': sheet('16_ExportMgmt_Raw', ['INVOICE NO.', 'Tracking#', 'Route (Note cho FCA, DAP)'], [
@@ -124,7 +125,7 @@ const idx = {}; H.forEach((h, i) => idx[h] = i);
 const rows = fvals.slice(1).map(r => { const o = {}; H.forEach((h, i) => o[h] = r[i]); return o; });
 function find(pred) { return rows.filter(pred); }
 
-ok('fact có 6 dòng (5 Full + 1 POB)', rows.length === 6, 'thực: ' + rows.length);
+ok('fact có 7 dòng (6 Full + 1 POB)', rows.length === 7, 'thực: ' + rows.length);
 const impCustoms = find(r => r.Forwarder === 'VVMV' && r['Standard Cost'] === 'Customs' && r['Import/Export'] === 'Import')[0];
 ok('VVMV nhập: Route=PURE (winner-take-all)', impCustoms && impCustoms.Route === 'PURE', impCustoms && impCustoms.Route);
 ok('VVMV nhập: Loại hàng=Material (E11)', impCustoms && impCustoms['Loại hàng'] === 'Material', impCustoms && impCustoms['Loại hàng']);
@@ -136,22 +137,29 @@ ok('VVMV xuất: Loại hàng=null (chỉ hàng nhập)', expFreight && (expFrei
 const tp = find(r => r.Forwarder === 'DHL')[0];
 ok('DHL cả 2 đầu ≠ VN: Import/Export=Third party', tp && tp['Import/Export'] === 'Third party', tp && tp['Import/Export']);
 ok('DHL Third party: Route=Other (tự động)', tp && tp.Route === 'Other', tp && tp.Route);
-const ov = find(r => r['FWD Column'] === 'Overhead FWD')[0];
+const ov = find(r => r.Forwarder === 'Gia Bảo')[0];
 ok('Overhead: Import/Export=Overhead', ov && ov['Import/Export'] === 'Overhead', ov && ov['Import/Export']);
 ok('Overhead: Route=null (ép null)', ov && (ov.Route === null || ov.Route === ''), ov && ov.Route);
+// Overhead CHƯA map (Evergreen/Customs handling): thêm mới không cần map vẫn phân loại đúng
+const ovNew = find(r => r.Forwarder === 'Evergreen')[0];
+ok('Overhead chưa map: FWD Column mặc định "Overhead FWD"', ovNew && ovNew['FWD Column'] === 'Overhead FWD', ovNew && ovNew['FWD Column']);
+ok('Overhead chưa map: Import/Export=Overhead (không bị loại)', ovNew && ovNew['Import/Export'] === 'Overhead', ovNew && ovNew['Import/Export']);
+ok('Overhead chưa map: Standard Cost mặc định = tên gốc', ovNew && ovNew['Standard Cost'] === 'Customs handling', ovNew && ovNew['Standard Cost']);
+ok('Overhead chưa map: Amount_USD=20 (500000/25000, vào tổng)', ovNew && approx(ovNew.Amount_USD, 20), ovNew && ovNew.Amount_USD);
+ok('Overhead chưa map: vẫn cảnh báo qc.unmapped', /Phí CHƯA map/.test(report) && /Evergreen \/ Customs handling/.test(report), report.split('\n').filter(s => /CHƯA map/.test(s))[0]);
 const pob = find(r => r['Import/Export'] === 'Pay on behalf')[0];
 ok('POB: có nhãn Pay on behalf', !!pob);
 ok('POB: Amount_USD=10000 (VND/25000)', pob && approx(pob.Amount_USD, 10000), pob && pob.Amount_USD);
 ok('POB: Route=PURE (từ sheet 18)', pob && pob.Route === 'PURE', pob && pob.Route);
-ok('report tách Full=5 dòng', /Full \(không POB\): 5 dòng/.test(report), report.split('\n')[1]);
+ok('report tách Full=6 dòng', /Full \(không POB\): 6 dòng/.test(report), report.split('\n')[1]);
 ok('report tách POB=1 dòng', /POB: 1 dòng/.test(report), report.split('\n')[2]);
 ok('report có $ theo nguồn (VVMV)', /Theo nguồn/.test(report) && /· VVMV: \d+ dòng · \$[\d.]+/.test(report),
   report.split('\n').filter(s => /VVMV:/.test(s))[0]);
 // getMeta: totalUsd = Full (loại POB), pobUsd tách riêng (QĐ-51)
 const meta = beCtx.getMeta();
-ok('getMeta.totalUsd = Full (loại POB) = 282', approx(meta.totalUsd, 282), meta.totalUsd);
+ok('getMeta.totalUsd = Full (loại POB) = 302', approx(meta.totalUsd, 302), meta.totalUsd);
 ok('getMeta.pobUsd = 10000', approx(meta.pobUsd, 10000), meta.pobUsd);
-ok('getMeta.grandTotalUsd = Full+POB = 10282', approx(meta.grandTotalUsd, 10282), meta.grandTotalUsd);
+ok('getMeta.grandTotalUsd = Full+POB = 10302', approx(meta.grandTotalUsd, 10302), meta.grandTotalUsd);
 line('  ── report ──\n' + report.split('\n').map(s => '     ' + s).join('\n'));
 
 // ───────────────────────── TEST 2: unit — winner-take-all & chuẩn hóa Route ─────────────────────────
