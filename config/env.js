@@ -7,7 +7,7 @@ window.APP_CONFIG = {
 
   // Dán URL Web App của Apps Script vào đây (dạng https://script.google.com/macros/s/.../exec)
   // Để trống '' ở Chặng 1 → web hiện màn hình placeholder.
-  GS_WEBAPP_URL: 'https://script.google.com/macros/s/REDACTED-ROTATED/exec',
+  GS_WEBAPP_URL: 'https://script.google.com/macros/s/AKfycbyIe-a6-dsylvQU5aE_w5-6ZI7tZT8EAYIU_cFBe6-q1c9r97iPPEIxfcyS8yoUeqo8/exec',
 
   // Tùy chọn: đọc tất cả tháng hay từng tháng (xem OPEN_QUESTION Q-W04)
   LOAD_ALL_MONTHS: true,

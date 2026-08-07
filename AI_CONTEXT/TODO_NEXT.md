@@ -5,8 +5,9 @@
 ## 🔴 Ưu tiên 0 — BẢO MẬT lịch sử data
 - [x] **Rewrite history + force-push (2026-08-06):** `git filter-repo` xóa `data/` (**4 file**) khỏi **toàn bộ 25 commit** + redact deployment-ID GAS (`env.js`→`REDACTED-ROTATED`). Force-push `75cab6a`→`9220231`. Verify history sạch. Backup bundle ở scratchpad. Xem `TECH_DEBT.md` TD-11 (resolved).
 - [x] Gỡ `data/` khỏi tracking + `.gitignore` (push `ba780e2`) — nay lịch sử cũng đã sạch.
-- [ ] 🔴 **[USER] Đổi repo sang Private** (GitHub → Settings → Danger Zone) — repo còn Public suốt lúc rewrite.
-- [ ] 🔴 **[USER] Rotate endpoint GAS:** redeploy *New deployment* (URL `/exec` mới) + đổi quyền khỏi "Anyone" → gửi URL mới để dán lại `env.js` + commit (app nay chưa đọc data thật).
+- [x] ~~Đổi repo Private~~ — **QĐ 2026-08-07: GIỮ PUBLIC** (GitHub Pages hosting bắt buộc). Đánh đổi: URL GAS public theo thiết kế → chuyển trọng tâm bảo mật sang **tầng GAS (TD-10)**.
+- [ ] 🟠 **[USER/DEV] TD-10 — chốt kiểm soát data qua URL public:** thêm token GAS (chặn bot, không chặn xem source) HOẶC đổi kiến trúc backend có auth nếu data quá nhạy cho public.
+- [x] ✅ **Rotate endpoint GAS (2026-08-07):** user redeploy *New deployment* → gửi URL `/exec` mới → đã dán lại `config/env.js`, verify `?action=ping` v0.3.0 + `?action=meta` 1479/$44.062,16 → app đọc data thật lại. **Còn:** đổi quyền GAS khỏi "Anyone" (TD-10); URL mới vẫn trong repo → chỉ an toàn nếu repo Private.
 - [ ] 🔴 **[USER] GitHub Support:** yêu cầu purge **cached commits** (`8b008e6`, `d26e33a`) + gỡ mọi **fork** (force-push không xóa cache; repo từng public → giả định đã lộ).
 - [ ] **[USER] Re-clone** mọi bản sao khác (toàn bộ SHA đã đổi).
 

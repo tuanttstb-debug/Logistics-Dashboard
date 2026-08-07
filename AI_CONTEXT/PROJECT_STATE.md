@@ -1,6 +1,6 @@
 # PROJECT STATE — Logistics Cost Dashboard
 
-**Cập nhật:** 2026-07-28
+**Cập nhật:** 2026-08-07
 
 > **Δ phiên 2026-07-22:** Chặng 1+2 xong (UI 4 trang, chạy mock) + **đã git init/commit/push** (github.com/tuanttstb-debug/Logistics-Dashboard). Đã dọn 1 clone rỗng lồng nhau.
 > **Δ (tối):** xác định phạm vi DB (QĐ-41 `40_FACT_CostLines` A:X / QĐ-42 1 tháng), hoàn thiện GAS BE, viết `SOP_DEPLOY.md`, **gỡ `data/` khỏi Git** (đã push `ba780e2`). 🔴 **Còn nợ bảo mật:** dữ liệu công ty vẫn trong lịch sử Git (xem `TECH_DEBT.md` TD-11).
@@ -10,6 +10,7 @@
 > **Δ 2026-07-28:** Nâng cấp `report_` (Transform.gs) — log **USD theo từng nguồn** + phơi **dòng bị filter `Amount=0`** (`<N> dòng · $<USD> (raw <M>, bỏ <K>)`), qua nhãn `_src` (không ghi vào fact). Mục đích: **tách bạch** lỗi tỷ giá (①, $ đồng đều) vs mất dòng (②, −26 dòng) khi đối chiếu baseline. Test **50/50 PASS**.
 > **Δ 2026-07-28 (chốt) — ✅ BASELINE KHỚP:** live `rebuildFact` = **1479 dòng · $44,062.16** vs Excel **1480/$44,062** → **tiền khớp đến cent**. Thủ phạm = **cột VAT `14_VVMV_Raw` mất data khi dán** (text `-`→null); user dán lại → VVMV 909→934 (+$739.57). **Tỷ giá 26452 ĐÚNG** (đã xác minh, không sửa). Lệch −1 dòng = `Báo cáo quyết toán` amount trống ($0) → chấp nhận. **KHÔNG** thêm `Lệ phí hải quan` vào sheet 19 (đã tính trong debit, thêm là double-count). Gỡ hàm chẩn đoán tạm `diagVVMV`.
 > **Δ 2026-08-06 — 🔒 BẢO MẬT (TD-11/TD-12):** rewrite lịch sử Git (`git filter-repo`) xóa `data/` (**4 file:** 2 xlsx + 2 handover `.md`) khỏi **toàn bộ 25 commit** + redact deployment-ID GAS (`env.js`→`REDACTED-ROTATED`) + **force-push** `75cab6a`→`9220231`. History sạch (verify: 0 `data/`, 0 URL). **TD-11 resolved** ở lịch sử; **dư nợ:** repo TỪNG public → GitHub cache SHA cũ (`8b008e6`,`d26e33a`) → cần **Private** + **GitHub Support** purge. `env.js` REDACTED + `USE_MOCK:false` → **app chưa đọc data thật** cho tới khi user **rotate GAS** gửi URL mới.
+> **Δ 2026-08-07 — ✅ ROTATE GAS xong:** user redeploy endpoint mới → đã dán URL mới vào `config/env.js` (`USE_MOCK:false`). Verify live: `?action=ping` v0.3.0 · `?action=meta` **1479 dòng/$44.062,16** (baseline khớp), routes 9/forwarders 7, pobCount 0 → **app đọc data thật lại**. **Dư nợ bảo mật:** (1) repo phải **Private** (endpoint mới vẫn "Anyone" + URL lại nằm trong repo); (2) đổi quyền GAS khỏi "Anyone" (TD-10); (3) GitHub Support purge cache SHA cũ.
 
 ## Trạng thái tổng thể
 
@@ -33,7 +34,7 @@ Git repo                 ██████████████████�
 
 ## Đang chặn / còn lại
 
-- 🔴 **BẢO MẬT (chờ user):** repo còn **Public** khi rewrite → đổi **Private** ngay + **GitHub Support** purge cache SHA cũ. **Rotate GAS** (redeploy URL mới) → gửi URL để dán lại `env.js` (nay REDACTED, app chưa đọc data thật).
+- 🟠 **BẢO MẬT:** QĐ 2026-08-07 — **GitHub Pages public bắt buộc** để hosting → **URL GAS public theo thiết kế**, chấp nhận. ✅ Rotate GAS xong: URL mới trong `env.js`, app đọc data thật lại. **Rủi ro tồn dư:** data tài chính vẫn phơi qua URL → phải quyết **TD-10** (token GAS / đổi kiến trúc auth). Còn: **GitHub Support** purge cache SHA cũ.
 - **Dữ liệu thật** 🟡 GAS Web App đã deploy + `GS_WEBAPP_URL` đã dán (`USE_MOCK:false`), ping OK. Còn: chạy `setupSheets()` tạo tab + dán A:X. Xem `SESSION_HANDOVER` khuya 2026-07-22.
 - Chưa xác minh trực quan trên trình duyệt thật (mới smoke-test logic + syntax).
 - Web-Q còn mở: Q-W01 (CORS/host), Q-W04 (đọc tất cả/từng tháng), Q-W05 (số dòng/tháng).

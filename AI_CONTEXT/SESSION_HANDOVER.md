@@ -2,6 +2,19 @@
 
 > Mới nhất trên cùng. Mỗi phiên một block. Chỉ ghi delta của phiên.
 
+## 2026-08-07 — ✅ Rotate GAS: dán URL mới vào env.js → khôi phục data thật
+
+- **✅ Task completed — user đã rotate endpoint GAS; dán URL mới lại `config/env.js`.**
+  - `GS_WEBAPP_URL`: `REDACTED-ROTATED` → URL Web App mới (user redeploy sau đợt bảo mật 2026-08-06). `USE_MOCK` giữ `false`.
+  - **Verify live (curl):** `?action=ping` → `{ok, version:0.3.0}` ✅ · `?action=meta` → **rowCount 1479 · totalUsd $44.062,16 · pobUsd 0 · fullCount 1479 · routes [AGIGA,AIC,EFI,FORD,LUCID,MRO,OEM,Other,PURE] · forwarders [DHL,Dolphin,EI,FedEx Export,FedEx Import,Gia Bảo,VVMV] · missingUsd 0**. Baseline khớp đến cent → **app đọc data thật lại**.
+- **📁 Files changed:** `config/env.js` (URL mới); docs: `TECH_DEBT.md` (TD-12), `CHANGE_LOG.md`, `TODO_NEXT.md`, `PROJECT_STATE.md`, handover này. **URL chỉ nằm ở `env.js`** — docs không chứa URL.
+- **🧭 Decision — CHẤP NHẬN URL public:** user chốt **GitHub Pages public là BẮT BUỘC** để hosting → SPA tự lộ `env.js` cho browser → **URL GAS public theo thiết kế** (che trong git/`env.local.js` vô nghĩa vì Pages phục vụ file committed cho mọi người). URL commit thẳng vào `env.js`. **Đã push** để user kiểm production.
+- **🚧 Blocker / rủi ro tồn dư (KHÔNG chặn push, nhưng phải xử lý):**
+  - 🟠 **Data tài chính vẫn phơi qua URL public.** Biện pháp duy nhất còn lại = **kiểm soát tầng GAS (TD-10)**: thêm token bí mật vào request — nhưng token cũng lộ trong env.js public → chỉ chặn bot vô danh, không chặn người xem source. **Cân nhắc thật:** dữ liệu này (shipper/consignee/số tiền thật) có hợp với hosting public không? Nếu không → cần backend có auth (không phải GAS "Anyone").
+  - 🔴 Repo TỪNG public trước rewrite → GitHub Support purge cache SHA cũ (`8b008e6`,`d26e33a`) vẫn cần làm.
+- **➡️ Next step:** (1) user kiểm production sau push; (2) quyết TD-10 (token GAS hay đổi kiến trúc auth) cho rủi ro data public; (3) TD-22 (dán data POB sheet 18 → `rebuildFact` → kiểm `?action=pob`); (4) mở web data thật kiểm 4 trang + Logistics record.
+- **⚠️ Regression risk:** rất thấp về code — chỉ đổi 1 dòng URL trong `env.js`; endpoint verify OK (ping/meta/pob/facts), baseline khớp $44.062,16.
+
 ## 2026-08-06 — 🔒 BẢO MẬT: rewrite lịch sử Git xóa `data/` (TD-11) + redact URL GAS (TD-12)
 
 - **✅ Task completed — purge dữ liệu công ty khỏi lịch sử Git.**

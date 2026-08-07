@@ -2,6 +2,16 @@
 
 > Ghi mọi thay đổi, mới nhất trên cùng.
 
+## 2026-08-07 — Rotate GAS: dán URL mới vào env.js (khôi phục data thật)
+
+### Thay đổi
+- **fix(env):** `config/env.js` `GS_WEBAPP_URL` `REDACTED-ROTATED` → **URL Web App GAS mới** (user rotate/redeploy sau đợt bảo mật 2026-08-06). `USE_MOCK` giữ `false`.
+- **verify:** `?action=ping` → `{ok, version:0.3.0}` ✅; `?action=meta` → **rowCount 1479 · totalUsd $44.062,16 · pobUsd 0 · routes 9 · forwarders 7** → baseline khớp, app đọc data thật lại.
+- **docs:** TD-12 cập nhật (URL đã rotate + dán); SESSION_HANDOVER/PROJECT_STATE/TODO_NEXT.
+
+### Lưu ý bảo mật (QĐ 2026-08-07)
+- **GitHub Pages public bắt buộc** để hosting → **URL GAS public theo thiết kế** (SPA lộ env.js cho browser; che trong git vô nghĩa). Chấp nhận URL trong repo public. **Rủi ro tồn dư:** data tài chính đọc được qua URL → phải quyết **TD-10** (token GAS / auth backend). Còn: GitHub Support purge cache SHA cũ.
+
 ## 2026-07-25 (v0.3.0) — Phase A hoàn chỉnh + Phase B trang Logistics record
 
 ### Bối cảnh
